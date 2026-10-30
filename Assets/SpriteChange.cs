@@ -22,6 +22,7 @@ public class PlayerSpriteChanger : MonoBehaviour
         if (target == null) target = GetComponent<SpriteRenderer>();
         if (target == null) target = GetComponentInChildren<SpriteRenderer>();
         if (target == null) Debug.LogWarning("PlayerSpriteChanger: SpriteRenderer не найден на " + name);
+        SetSprite1(); // по умолчанию ставим первый спрайт
     }
 
     public void SetSprite1() { Apply(sprite1); }
@@ -29,6 +30,23 @@ public class PlayerSpriteChanger : MonoBehaviour
     public void SetSprite3() { Apply(sprite3); }
     public void SetSprite4() { Apply(sprite4); }
     public void SetSprite5() { Apply(sprite5); }
+
+    public void SetSprite(int x) 
+    {
+        switch (x) 
+        { 
+            case 1: SetSprite1(); break;
+            case 2: SetSprite2(); break;
+            case 3: SetSprite3(); break;
+            case 4: SetSprite4(); break;
+            case 5: SetSprite5(); break;
+
+        }
+    
+    
+    }
+
+
 
     void Apply(Sprite s)
     {

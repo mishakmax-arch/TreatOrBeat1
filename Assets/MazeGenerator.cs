@@ -4,66 +4,86 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 
 /// <summary>
-/// 2D-версия для Unity: лабиринт 50x50 клеток на Tilemap, каждый тайл 64x64 пикселя.
-/// Вешается на пустой GameObject (рядом с MazeBuilder.cs, который на объект вешать НЕ нужно).
-///
-/// Размер сетки: клетка лабиринта = проход (1 тайл) + стена (1 тайл), поэтому
-/// 50x50 клеток -> сетка тайлов 101x101 (6464x6464 пикселей при тайле 64 px).
+/// 2D maze on a Tilemap, each tile is 64x64 pixels.
+/// Put it on an empty GameObject (MazeBuilder.cs must NOT be attached to anything).
 /// </summary>
 public class MazeGenerator : MonoBehaviour
 {
-    [Header("Размер лабиринта (в клетках)")]
+    [Header("Maze size (cells)")]
     public int cellsX = 50;
     public int cellsY = 50;
 
-    [Header("Тайлы")]
-    public int tilePixels = 64;         // размер одного тайла в пикселях
-    public int pixelsPerUnit = 64;      // 64 px = 1 юнит Unity (тайл = 1x1 юнит)
-    public Sprite wallSprite;           // если пусто - генерируется 64x64 спрайт
+    [Header("Tiles")]
+    public int tilePixels = 64;
+    public int pixelsPerUnit = 64;
+    public Sprite wallSprite;           // if empty - generated
     public Sprite floorSprite;
-    public Sprite waypointSprite;
     public Color wallColor = new Color(0.15f, 0.16f, 0.2f);
     public Color floorColor = new Color(0.85f, 0.82f, 0.72f);
-    public Color waypointColor = new Color(0.95f, 0.3f, 0.25f);
-    public bool addColliders = true;    // TilemapCollider2D на стенах
+    public bool addColliders = true;
 
-    [Header("Параметры генерации")]
+    [Header("Altar prefabs (optional). Each can have its own animation.")]
+    public GameObject altarPrefab;            // NOT activated altar
+    public GameObject altarActivatedPrefab;   // ACTIVATED altar
+
+    [Header("Waypoint sprites (used when the prefab slot is empty, and for entrance/exit)")]
+    public Sprite waypointSprite;           // normal altar, if no prefab
+    public Sprite waypointActivatedSprite;  // activated altar, if no prefab
+    public Sprite entranceSprite;           // where the player spawns
+    public Sprite exitSprite;               // random one of the rest
+    public Color waypointColor = new Color(0.95f, 0.3f, 0.25f);
+    public Color waypointActivatedColor = new Color(0.3f, 0.85f, 0.35f);
+    public Color entranceColor = new Color(0.25f, 0.55f, 0.95f);
+    public Color exitColor = new Color(0.95f, 0.85f, 0.2f);
+
+    [Header("Waypoint scale")]
+    public Vector2 waypointScale = new Vector2(1.5f, 1.5f);
+
+    [Header("Generation")]
     [Range(1, 12)] public int variants = 5;
     [Range(2, 9)] public int waypointsCount = 5;
-    public int minPointDist = 25;       // между waypoint'ами (в тайлах); на малых картах снижается само
+    public int minPointDist = 25;
     public float detourMin = 1.3f;
     public float detourMax = 1.8f;
 
-    [Header("Случайность")]
-    public bool useRandomSeed = true;   // каждый запуск - новый лабиринт и новые waypoint'ы
+    [Header("Randomness")]
+    public bool useRandomSeed = true;
     public int seed = 1;
-    public bool shuffleWaypointOrder = true; // порядок номеров waypoint'ов тоже случайный
+    public bool shuffleWaypointOrder = true;
 
-    [Header("Камера и игрок")]
+    [Header("Camera and player")]
     public bool fitCamera = true;
-    public Transform player;            // ставится на случайный waypoint
+    public Transform player;            // spawns on the entrance
 
-    [Header("Пошаговый показ")]
+    [Header("Step-by-step display")]
     public bool animateStages = false;
     public float stageDelay = 0.4f;
 
-    [Header("Запуск")]
+    [Header("Start")]
     public bool generateOnStart = true;
 
     public MazeBuilder Builder { get; private set; }
     public List<Transform> Waypoints { get; private set; }
-    public List<Vector2Int> WaypointCells { get; private set; } // клетки сетки, тот же порядок, что и Waypoints
+    public List<Vector2Int> WaypointCells { get; private set; }
+    public List<SpriteRenderer> WaypointRenderers { get; private set; }
 
-    /// <summary>Вызывается, когда лабиринт и waypoint'ы полностью готовы.</summary>
+    /// <summary>Index of the entrance waypoint (where the player spawned), -1 if none.</summary>
+    public int EntranceIndex { get; private set; }
+    /// <summary>Index of the exit waypoint, -1 if none.</summary>
+    public int ExitIndex { get; private set; }
+
+    public Transform Entrance { get { return IsValid(EntranceIndex) ? Waypoints[EntranceIndex] : null; } }
+    public Transform Exit { get { return IsValid(ExitIndex) ? Waypoints[ExitIndex] : null; } }
+
     public event System.Action OnMazeGenerated;
 
-    // размер тайла в мировых единицах: 64 / 64 = 1
     public float TileSize { get { return (float)tilePixels / pixelsPerUnit; } }
 
     Transform root;
     Tilemap tilemap;
     Tile wallTile, floorTile;
-    Sprite waypointSpriteRuntime;
+    Sprite normalSpriteRuntime, activatedSpriteRuntime, entranceSpriteRuntime, exitSpriteRuntime;
+    List<GameObject> waypointVisuals;   // current prefab instance of each waypoint (null = sprite mode)
 
     void Start()
     {
@@ -124,12 +144,12 @@ public class MazeGenerator : MonoBehaviour
     {
         if (Builder.Warning != null) Debug.LogWarning(Builder.Warning);
         var r = Builder.Verify();
-        Debug.Log("Maze seed " + seed + " (" + cellsX + "x" + cellsY + "): связно=" + r.connected +
-                  ", все waypoint'ы достижимы=" + r.allPointsReachable + ", тупиков=" + r.deadEnds);
+        Debug.Log("Maze seed " + seed + " (" + cellsX + "x" + cellsY + "): connected=" + r.connected +
+                  ", all waypoints reachable=" + r.allPointsReachable + ", dead ends=" + r.deadEnds);
         if (OnMazeGenerated != null) OnMazeGenerated();
     }
 
-    // ---------- подготовка Grid + Tilemap ----------
+    // ---------- Grid + Tilemap ----------
     void PrepareScene()
     {
         if (root != null) Destroy(root.gameObject);
@@ -151,7 +171,11 @@ public class MazeGenerator : MonoBehaviour
 
         wallTile = MakeTile(wallSprite != null ? wallSprite : MakeSprite(wallColor, true), true);
         floorTile = MakeTile(floorSprite != null ? floorSprite : MakeSprite(floorColor, false), false);
-        waypointSpriteRuntime = waypointSprite != null ? waypointSprite : MakeCircleSprite(waypointColor);
+
+        normalSpriteRuntime = waypointSprite != null ? waypointSprite : MakeCircleSprite(waypointColor);
+        activatedSpriteRuntime = waypointActivatedSprite != null ? waypointActivatedSprite : MakeCircleSprite(waypointActivatedColor);
+        entranceSpriteRuntime = entranceSprite != null ? entranceSprite : MakeCircleSprite(entranceColor);
+        exitSpriteRuntime = exitSprite != null ? exitSprite : MakeCircleSprite(exitColor);
     }
 
     Tile MakeTile(Sprite s, bool solid)
@@ -162,7 +186,6 @@ public class MazeGenerator : MonoBehaviour
         return t;
     }
 
-    // Генерация 64x64 спрайта, если свой не задан
     Sprite MakeSprite(Color c, bool withBorder)
     {
         int n = tilePixels;
@@ -197,8 +220,7 @@ public class MazeGenerator : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), pixelsPerUnit);
     }
 
-    // ---------- отрисовка ----------
-    // y инвертируем, чтобы лабиринт на экране выглядел так же, как в консоли (y=0 сверху)
+    // ---------- drawing ----------
     Vector3Int ToCell(int x, int y)
     {
         return new Vector3Int(x, Builder.Height - 1 - y, 0);
@@ -218,7 +240,7 @@ public class MazeGenerator : MonoBehaviour
                 i++;
             }
         tilemap.ClearAllTiles();
-        tilemap.SetTiles(pos, tiles); // одним вызовом - быстро даже для 101x101 = 10201 тайла
+        tilemap.SetTiles(pos, tiles);
 
         if (fitCamera) FitCamera(W, H);
     }
@@ -234,14 +256,17 @@ public class MazeGenerator : MonoBehaviour
         cam.orthographicSize = Mathf.Max(hh * 0.5f, ww * 0.5f / cam.aspect);
     }
 
-    // ---------- waypoint'ы (случайные) ----------
+    // ---------- waypoints ----------
     void SpawnWaypoints()
     {
         Waypoints = new List<Transform>();
         WaypointCells = new List<Vector2Int>();
+        WaypointRenderers = new List<SpriteRenderer>();
+        waypointVisuals = new List<GameObject>();
+        EntranceIndex = -1;
+        ExitIndex = -1;
         var pts = new List<Vector2Int>(Builder.Points);
 
-        // Builder уже выбирает их случайно (зависит от seed); дополнительно перемешиваем нумерацию
         if (shuffleWaypointOrder)
             for (int i = pts.Count - 1; i > 0; i--)
             {
@@ -251,15 +276,46 @@ public class MazeGenerator : MonoBehaviour
 
         for (int i = 0; i < pts.Count; i++)
         {
+            // the waypoint root stays the same forever (position + scale + its own SpriteRenderer for sprite mode)
             var go = new GameObject("Waypoint_" + (i + 1));
             go.transform.SetParent(root, false);
             go.transform.position = CellToWorld(pts[i]);
+            go.transform.localScale = new Vector3(waypointScale.x, waypointScale.y, 1f);
+
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = waypointSpriteRuntime;
             sr.sortingOrder = 10;
+
             Waypoints.Add(go.transform);
             WaypointCells.Add(pts[i]);
+            WaypointRenderers.Add(sr);
+            waypointVisuals.Add(null);
+
+            ShowAltar(i, false); // start as NOT activated
         }
+    }
+
+    /// <summary>Picks the entrance (player spawn) and a random exit among the rest.</summary>
+    void PlacePlayer()
+    {
+        if (Waypoints == null || Waypoints.Count == 0) return;
+
+        EntranceIndex = Random.Range(0, Waypoints.Count);
+
+        if (Waypoints.Count > 1)
+        {
+            do { ExitIndex = Random.Range(0, Waypoints.Count); } while (ExitIndex == EntranceIndex);
+        }
+
+        ShowSprite(EntranceIndex, entranceSpriteRuntime);
+        Waypoints[EntranceIndex].name = "Waypoint_" + (EntranceIndex + 1) + "_Entrance";
+
+        if (ExitIndex >= 0)
+        {
+            ShowSprite(ExitIndex, exitSpriteRuntime);
+            Waypoints[ExitIndex].name = "Waypoint_" + (ExitIndex + 1) + "_Exit";
+        }
+
+        if (player != null) player.position = Waypoints[EntranceIndex].position;
     }
 
     public Transform GetRandomWaypoint(Transform exclude = null)
@@ -271,21 +327,80 @@ public class MazeGenerator : MonoBehaviour
         return w;
     }
 
-    void PlacePlayer()
+    // ---------- waypoint visuals ----------
+    bool IsValid(int index)
     {
-        if (player == null || Waypoints == null || Waypoints.Count == 0) return;
-        player.position = GetRandomWaypoint().position;
+        return Waypoints != null && index >= 0 && index < Waypoints.Count;
     }
 
-    // ---------- утилиты ----------
-    /// <summary>Мировая позиция -> клетка сетки лабиринта (обратная к CellToWorld).</summary>
+    void ClearVisual(int index)
+    {
+        if (waypointVisuals[index] != null)
+        {
+            Destroy(waypointVisuals[index]);
+            waypointVisuals[index] = null;
+        }
+    }
+
+    /// <summary>Shows the altar in the given state: uses the matching prefab, or the sprite if the prefab slot is empty.</summary>
+    void ShowAltar(int index, bool activated)
+    {
+        ClearVisual(index);
+
+        GameObject prefab = activated ? altarActivatedPrefab : altarPrefab;
+        if (prefab != null)
+        {
+            var visual = Instantiate(prefab, Waypoints[index]);
+            visual.transform.localPosition = Vector3.zero;
+            visual.transform.localRotation = Quaternion.identity;
+            waypointVisuals[index] = visual;
+            WaypointRenderers[index].enabled = false; // the prefab draws itself
+        }
+        else
+        {
+            WaypointRenderers[index].enabled = true;
+            WaypointRenderers[index].sprite = activated ? activatedSpriteRuntime : normalSpriteRuntime;
+        }
+    }
+
+    /// <summary>Removes any prefab visual and shows a plain sprite.</summary>
+    void ShowSprite(int index, Sprite sprite)
+    {
+        ClearVisual(index);
+        WaypointRenderers[index].enabled = true;
+        WaypointRenderers[index].sprite = sprite;
+    }
+
+    // ---------- changing waypoints from other scripts ----------
+    /// <summary>Switches an altar between NOT activated and ACTIVATED (swaps the prefab). Ignores entrance and exit.</summary>
+    public void SetWaypointActivated(int index, bool activated)
+    {
+        if (!IsValid(index)) return;
+        if (index == EntranceIndex || index == ExitIndex) return;
+        ShowAltar(index, activated);
+    }
+
+    public void ActivateWaypoint(int index) { SetWaypointActivated(index, true); }
+
+    public void DeactivateWaypoint(int index) { SetWaypointActivated(index, false); }
+
+    /// <summary>Sets any custom sprite on a waypoint (removes its prefab visual).</summary>
+    public void SetWaypointSprite(int index, Sprite sprite)
+    {
+        if (!IsValid(index) || sprite == null) return;
+        ShowSprite(index, sprite);
+    }
+
+    /// <summary>Changes the sprite of the exit (for example, to show it is now open).</summary>
+    public void SetExitSprite(Sprite sprite) { SetWaypointSprite(ExitIndex, sprite); }
+
+    // ---------- utilities ----------
     public Vector2Int WorldToGrid(Vector3 world)
     {
         Vector3Int c = tilemap.WorldToCell(world);
         return new Vector2Int(c.x, Builder.Height - 1 - c.y);
     }
 
-    /// <summary>Кратчайший путь по проходам лабиринта (BFS). Возвращает центры тайлов в мировых координатах.</summary>
     public List<Vector3> FindPathWorld(Vector2Int from, Vector2Int to)
     {
         var g = Builder.Grid;
@@ -312,7 +427,7 @@ public class MazeGenerator : MonoBehaviour
         }
 
         var path = new List<Vector3>();
-        if (!seen[to.x, to.y]) return path; // пути нет
+        if (!seen[to.x, to.y]) return path;
         for (var cur = to; cur != from; cur = prev[cur.x, cur.y])
             path.Add(CellToWorld(cur));
         path.Reverse();
