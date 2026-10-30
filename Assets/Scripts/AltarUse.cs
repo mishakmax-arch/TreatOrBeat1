@@ -1,5 +1,7 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class AltarUse : MonoBehaviour
 {
@@ -9,6 +11,7 @@ public class AltarUse : MonoBehaviour
 
     public List<bool> ActivatedAltars = new List<bool>();
     public int NumberOfActivatedAltars = 0;
+    public Image LoadScreen;
 
     void OnEnable()
     {
@@ -58,6 +61,28 @@ public class AltarUse : MonoBehaviour
         maze.ActivateWaypoint(altarNumber);
         changer.SetSprite(NumberOfActivatedAltars + 1);
 
-        maze.RebuildMazeKeepWaypoints();   // new walls, same altars and player
+        StartCoroutine(FillLoadScreen());
+    }
+
+    IEnumerator FillLoadScreen()
+    {
+        LoadScreen.fillAmount = 0f;
+
+        while (LoadScreen.fillAmount < 1f)
+        {
+            LoadScreen.fillAmount += 1f * Time.deltaTime;
+            yield return null;
+        }
+
+        LoadScreen.fillAmount = 1f;
+        maze.RebuildMazeKeepWaypoints();
+
+        while (LoadScreen.fillAmount > 0f)
+        {
+            LoadScreen.fillAmount -= 1f * Time.deltaTime;
+            yield return null;
+        }
+
+        LoadScreen.fillAmount = 0f;
     }
 }
