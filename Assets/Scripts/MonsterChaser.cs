@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Монстр: преследует игрока по лабиринту с упреждением (pursuit/интерсепт).
-/// Двигается по клеткам сетки так же, как игрок. Поиск пути: BFS.
+/// Монстр: преследует игрока по лабиринту с упреждением (перехват).
+/// Ходит по клеткам сетки, поиск пути - BFS.
+/// Появляется заново:
+///   - после полной генерации (OnMazeGenerated),
+///   - после активации алтаря и пересоздания стен (OnMazeRebuilt).
+/// Точка появления: случайный алтарь (waypoint), далёкий от игрока по реальному пути.
 /// </summary>
 public class MonsterChaser : MonoBehaviour
 {
@@ -13,26 +17,26 @@ public class MonsterChaser : MonoBehaviour
     public PlayerMazeController player;
 
     [Header("Движение")]
-    public float speed = 5.5f;          // клеток в секунду (у игрока 6 - монстр чуть медленнее)
-    public float spawnDelay = 2f;       // пауза после генерации, пока монстр стоит
+    public float speed = 5.5f;          // у игрока 6
+    public float spawnDelay = 2f;       // сколько монстр стоит после появления
     public float catchDistance = 0.5f;  // дистанция поимки в мировых единицах
 
     [Header("Спавн")]
-    public int minSpawnPathDist = 20;    // минимальная дистанция по реальному пути от игрока (в клетках)
-    public bool avoidLastSpawn = true;   // не появляться дважды подряд на той же точке
-
-    Vector2Int lastSpawn = new Vector2Int(-1, -1);
+    public int minSpawnPathDist = 30;       // минимум клеток по пути от игрока
+    public bool avoidLastSpawn = true;      // не появляться подряд на одной точке
+    public bool spawnOnEntranceExit = true; // разрешить появление на входе/выходе
 
     [Header("Упреждение")]
-    public int maxLeadCells = 14;       // на сколько клеток вперёд предсказываем игрока
-    public float headingMemory = 0.4f;  // сек: сколько после последнего шага считаем, что игрок "бежит"
+    public int maxLeadCells = 14;
+    public float headingMemory = 0.4f;
     [Range(0f, 1f)]
-    public float leadStrength = 1f;     // 0 = простая погоня, 1 = полное упреждение
+    public float leadStrength = 1f;     // 0 = простая погоня
 
     [Header("Отладка")]
     public bool drawGizmos = true;
 
     public event Action OnCaught;
+    public event Action OnSpawned;
 
     static readonly Vector2Int[] DIRS =
     {
@@ -43,81 +47,78 @@ public class MonsterChaser : MonoBehaviour
     bool pendingSpawn, active, moving, caught;
     float activateTime;
     Vector2Int cell;
+    Vector2Int lastSpawn = new Vector2Int(-1, -1);
     Vector3 moveTarget;
+    Renderer[] renderers;
 
     // BFS-буферы
     int[,] dist;
     Vector2Int[,] prev;
     readonly Queue<Vector2Int> queue = new Queue<Vector2Int>();
 
-    // для отладки
+    // отладка
     readonly List<Vector2Int> trajectory = new List<Vector2Int>();
     Vector2Int interceptCell;
 
     // ------------------------------------------------------------------
-    void OnEnable() { if (maze != null) maze.OnMazeGenerated += HandleGenerated; }
-    void OnDisable() { if (maze != null) maze.OnMazeGenerated -= HandleGenerated; }
+    void Awake()
+    {
+        renderers = GetComponentsInChildren<Renderer>(true);
+        SetVisible(false); // пока не появился - скрыт
+    }
+
+    void OnEnable()
+    {
+        if (maze == null) return;
+        maze.OnMazeGenerated += HandleGenerated; // полная генерация: новые алтари
+        maze.OnMazeRebuilt += HandleRebuilt;     // алтарь активирован: новые стены, те же алтари
+    }
+
+    void OnDisable()
+    {
+        if (maze == null) return;
+        maze.OnMazeGenerated -= HandleGenerated;
+        maze.OnMazeRebuilt -= HandleRebuilt;
+    }
 
     void Start()
     {
-        // если лабиринт уже построен до включения скрипта
-        if (maze != null && maze.Builder != null && maze.Builder.Grid != null) pendingSpawn = true;
+        // карта могла быть построена раньше, чем включился скрипт
+        if (maze != null && maze.Builder != null && maze.Builder.Grid != null) ScheduleSpawn();
     }
+
     void HandleGenerated()
+    {
+        lastSpawn = new Vector2Int(-1, -1); // точки новые, старую запоминать нет смысла
+        ScheduleSpawn();
+    }
+
+    void HandleRebuilt()
+    {
+        ScheduleSpawn();
+    }
+
+    /// Можно вызвать вручную (например, после поимки игрока).
+    public void Respawn()
+    {
+        ScheduleSpawn();
+    }
+
+    // Сбрасываем всё старое (оно строилось по старым стенам), спавн произойдёт в Update
+    void ScheduleSpawn()
     {
         active = false;
         moving = false;
         caught = false;
         trajectory.Clear();
-        pendingSpawn = true; // спавним в следующем кадре, когда игрок уже стоит на входе
+        SetVisible(false);
+        pendingSpawn = true;
     }
 
-    /// Можно вызвать вручную из кода "перегенерации карты", если не хочешь ждать событие.
-    public void Respawn()
+    void SetVisible(bool v)
     {
-        HandleGenerated();
-    }
-
-    // Спавн: случайная опорная точка, достаточно далёкая от игрока по реальному пути
-    void Spawn()
-    {
-        var b = maze.Builder;
-        if (b.Points == null || b.Points.Count == 0) return;
-
-        // игрок ещё не стоит на проходе (например, не успел телепортироваться) - пробуем в следующем кадре
-        if (!IsFree(player.CurrentCell)) { pendingSpawn = true; return; }
-
-        EnsureBuffers();
-        Bfs(player.CurrentCell);
-
-        var candidates = new List<Vector2Int>();
-        Vector2Int farthest = b.Points[0];
-        int farthestD = -1;
-
-        foreach (var p in b.Points)
-        {
-            int d = dist[p.x, p.y];
-            if (d < 0) continue; // недостижима
-            if (d > farthestD) { farthestD = d; farthest = p; }
-            if (d >= minSpawnPathDist) candidates.Add(p);
-        }
-
-        // не появляемся на той же точке подряд, если есть выбор
-        if (avoidLastSpawn && candidates.Count > 1) candidates.Remove(lastSpawn);
-
-        // если все точки ближе порога (маленькая карта) - берём самую дальнюю
-        Vector2Int chosen = candidates.Count > 0
-            ? candidates[UnityEngine.Random.Range(0, candidates.Count)]
-            : farthest;
-
-        lastSpawn = chosen;
-        cell = chosen;
-
-        Vector3 w = maze.CellToWorld(cell);
-        transform.position = new Vector3(w.x, w.y, transform.position.z);
-
-        active = true;
-        activateTime = Time.time + spawnDelay;
+        if (renderers == null) return;
+        foreach (var r in renderers) if (r != null) r.enabled = v;
     }
 
     // ------------------------------------------------------------------
@@ -158,17 +159,69 @@ public class MonsterChaser : MonoBehaviour
         moving = true;
     }
 
- 
     // ------------------------------------------------------------------
-    // Основной алгоритм: упреждение + BFS
+    // Спавн: случайный алтарь, далёкий от игрока по пути в НОВОМ лабиринте
+    void Spawn()
+    {
+        var points = maze.WaypointCells;
+        if (points == null || points.Count == 0) return;
+
+        Vector2Int playerCell = player.CurrentCell;
+        // игрок ещё не стоит на проходе (не успел встать на место) - повторим в следующем кадре
+        if (!IsFree(playerCell)) { pendingSpawn = true; return; }
+
+        EnsureBuffers();
+        Bfs(playerCell);
+
+        var candidates = new List<Vector2Int>();
+        Vector2Int farthest = playerCell;
+        int farthestD = -1;
+
+        for (int i = 0; i < points.Count; i++)
+        {
+            if (!spawnOnEntranceExit && (i == maze.EntranceIndex || i == maze.ExitIndex)) continue;
+
+            Vector2Int p = points[i];
+            if (!IsFree(p)) continue;
+            int dd = dist[p.x, p.y];
+            if (dd < 0) continue; // недостижима
+
+            if (dd > farthestD) { farthestD = dd; farthest = p; }
+            if (dd >= minSpawnPathDist) candidates.Add(p);
+        }
+
+        if (farthestD < 0) return; // нет ни одной подходящей точки
+
+        if (avoidLastSpawn && candidates.Count > 1) candidates.Remove(lastSpawn);
+
+        // если все точки ближе порога (маленькая карта) - берём самую дальнюю
+        Vector2Int chosen = candidates.Count > 0
+            ? candidates[UnityEngine.Random.Range(0, candidates.Count)]
+            : farthest;
+
+        lastSpawn = chosen;
+        cell = chosen;
+
+        Vector3 w = maze.CellToWorld(cell);
+        transform.position = new Vector3(w.x, w.y, transform.position.z);
+
+        SetVisible(true);
+        active = true;
+        activateTime = Time.time + spawnDelay;
+        if (OnSpawned != null) OnSpawned();
+    }
+
+    // ------------------------------------------------------------------
+    // Упреждение + BFS
     bool PlanNextStep(out Vector2Int next)
     {
         next = cell;
         EnsureBuffers();
 
-        Bfs(cell); // расстояния от монстра до всех клеток + prev для восстановления пути
+        Bfs(cell);
 
         Vector2Int playerCell = player.CurrentCell;
+        if (!IsFree(playerCell)) return false;
         Vector2Int target = playerCell;
 
         if (leadStrength > 0f && Time.time - player.LastMoveTime < headingMemory)
@@ -182,12 +235,10 @@ public class MonsterChaser : MonoBehaviour
         }
         interceptCell = target;
 
-        // если уже стоим в точке перехвата - идём к самому игроку
         if (target == cell) target = playerCell;
         if (target == cell) return false;
-        if (dist[target.x, target.y] < 0) return false; // недостижима (не должно быть: лабиринт связный)
+        if (dist[target.x, target.y] < 0) return false;
 
-        // восстанавливаем путь от target назад до соседа cell
         Vector2Int cur = target;
         while (prev[cur.x, cur.y] != cell)
         {
@@ -198,11 +249,6 @@ public class MonsterChaser : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Предсказываем путь игрока: идёт вперёд; если упёрся в стену и есть
-    /// единственный поворот (коридор), поворачивает. На развилке/тупике обрываем.
-    /// trajectory[k] = где игрок будет через k шагов.
-    /// </summary>
     void BuildTrajectory(Vector2Int start, Vector2Int dir, int steps)
     {
         trajectory.Clear();
@@ -220,7 +266,6 @@ public class MonsterChaser : MonoBehaviour
             }
             else
             {
-                // вперёд стена: ищем повороты (кроме разворота назад)
                 Vector2Int turn = Vector2Int.zero;
                 int options = 0;
                 foreach (var nd in DIRS)
@@ -229,16 +274,12 @@ public class MonsterChaser : MonoBehaviour
                     if (IsFree(c + nd)) { turn = nd; options++; }
                 }
                 if (options == 1) { d = turn; c = c + d; }
-                else break; // развилка или тупик - дальше не угадать
+                else break;
             }
             trajectory.Add(c);
         }
     }
 
-    /// <summary>
-    /// Выбираем точку перехвата: первая клетка траектории, куда монстр приходит
-    /// не позже игрока. Если такой нет - с минимальным отставанием.
-    /// </summary>
     Vector2Int ChooseIntercept(Vector2Int playerCell)
     {
         float playerSpeed = Mathf.Max(0.01f, player.Speed);
@@ -255,7 +296,7 @@ public class MonsterChaser : MonoBehaviour
 
             float tMonster = dm / monsterSpeed;
             float tPlayer = k * leadStrength / playerSpeed;
-            float slack = tMonster - tPlayer; // <= 0: успеваем
+            float slack = tMonster - tPlayer;
 
             if (slack <= 0f) return p;
             if (slack < bestSlack) { bestSlack = slack; best = p; }
@@ -264,7 +305,6 @@ public class MonsterChaser : MonoBehaviour
     }
 
     // ------------------------------------------------------------------
-    // BFS по сетке (проход = true). Каждый шаг = 1 клетка сетки = 1 юнит.
     void Bfs(Vector2Int from)
     {
         int W = maze.Builder.Width, H = maze.Builder.Height;
@@ -289,6 +329,7 @@ public class MonsterChaser : MonoBehaviour
         }
     }
 
+    // Builder пересоздаётся при каждой перестройке, поэтому размер проверяем каждый раз
     void EnsureBuffers()
     {
         int W = maze.Builder.Width, H = maze.Builder.Height;
