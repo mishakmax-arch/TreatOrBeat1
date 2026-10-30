@@ -75,7 +75,11 @@ public class MazeGenerator : MonoBehaviour
     public Transform Entrance { get { return IsValid(EntranceIndex) ? Waypoints[EntranceIndex] : null; } }
     public Transform Exit { get { return IsValid(ExitIndex) ? Waypoints[ExitIndex] : null; } }
 
+    /// <summary>Fired after a full Generate() (new altars, entrance, exit).</summary>
     public event System.Action OnMazeGenerated;
+
+    /// <summary>Fired after RebuildMazeKeepWaypoints() (new walls, same altars and player).</summary>
+    public event System.Action OnMazeRebuilt;
 
     public float TileSize { get { return (float)tilePixels / pixelsPerUnit; } }
 
@@ -125,6 +129,33 @@ public class MazeGenerator : MonoBehaviour
             PlacePlayer();
             ReportResult();
         }
+    }
+
+    /// <summary>Builds a new maze layout but keeps all waypoints, their states and the player where they are.</summary>
+    public void RebuildMazeKeepWaypoints()
+    {
+        if (Builder == null || WaypointCells == null || tilemap == null) return;
+
+        if (useRandomSeed) seed = Random.Range(0, int.MaxValue);
+
+        var nb = new MazeBuilder
+        {
+            cellsX = cellsX,
+            cellsY = cellsY,
+            variants = variants,
+            pointsCount = waypointsCount,
+            minPointDist = minPointDist,
+            detourMin = detourMin,
+            detourMax = detourMax,
+            seed = seed,
+            presetPoints = new List<Vector2Int>(WaypointCells)   // same altar cells
+        };
+        nb.Build();
+        Builder = nb;
+
+        DrawGrid(Builder.Grid);   // only the tiles are redrawn; waypoints and player are not touched
+
+        if (OnMazeRebuilt != null) OnMazeRebuilt();
     }
 
     IEnumerator PlayFrames(List<KeyValuePair<string, bool[,]>> frames)

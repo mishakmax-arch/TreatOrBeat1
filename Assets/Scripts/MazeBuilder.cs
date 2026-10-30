@@ -3,29 +3,32 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Чистая логика генерации лабиринта (порт из консольного C++).
-/// Не зависит от сцены: можно тестировать отдельно и вызывать из любого MonoBehaviour.
-/// Сетка: W = cellsX*2+1, H = cellsY*2+1. Клетки на нечётных координатах, стены/проходы между ними - на чётных.
-/// Grid[x, y] == true  -> проход, false -> стена.
+/// Pure maze generation logic (port from the console C++ version).
+/// Independent from the scene.
+/// Grid: W = cellsX*2+1, H = cellsY*2+1. Cells are on odd coordinates, walls/passages between them on even ones.
+/// Grid[x, y] == true  -> passage, false -> wall.
 /// </summary>
 public class MazeBuilder
 {
-    // ---------- параметры ----------
+    // ---------- parameters ----------
     public int cellsX = 25, cellsY = 15;
-    public int variants = 5;           // количество слоёв
-    public int pointsCount = 5;        // опорные точки (2..9)
-    public int minPointDist = 25;      // манхэттенская дистанция в клетках сетки
+    public int variants = 5;           // number of layers
+    public int pointsCount = 5;        // anchor points (2..9)
+    public int minPointDist = 25;      // manhattan distance in grid cells
     public float detourMin = 1.3f, detourMax = 1.8f;
     public int seed = 1;
 
-    // ---------- результат ----------
+    /// <summary>If set (2+ points), these points are used instead of picking random ones.</summary>
+    public List<Vector2Int> presetPoints;
+
+    // ---------- result ----------
     public int Width { get; private set; }
     public int Height { get; private set; }
     public bool[,] Grid { get; private set; }
     public List<Vector2Int> Points { get; private set; }
     public string Warning { get; private set; }
 
-    /// <summary>Вызывается на каждом этапе (для пошаговой визуализации). Передаётся копия сетки.</summary>
+    /// <summary>Called on each stage (for step-by-step display). Receives a copy of the grid.</summary>
     public Action<string, bool[,]> OnStage;
 
     public struct Report
@@ -34,7 +37,7 @@ public class MazeBuilder
         public bool connected, allPointsReachable;
     }
 
-    // ---------- внутреннее ----------
+    // ---------- internal ----------
     static readonly Vector2Int[] DIRS =
     {
         new Vector2Int(0, -1), new Vector2Int(0, 1), new Vector2Int(-1, 0), new Vector2Int(1, 0)
@@ -71,28 +74,32 @@ public class MazeBuilder
         H = Height = cellsY * 2 + 1;
         Warning = null;
 
-        Points = PickPoints(pointsCount);
+        // CHANGED: use preset points if given
+        Points = (presetPoints != null && presetPoints.Count >= 2)
+            ? new List<Vector2Int>(presetPoints)
+            : PickPoints(pointsCount);
+
         bool[,] map = Empty();
-        Stage("Шаг 0: опорные точки", map);
+        Stage("Step 0: anchor points", map);
 
         for (int v = 0; v < variants; v++)
         {
             bool[,] layer = BuildVariant();
-            Stage("Слой " + (v + 1) + "/" + variants, layer);
+            Stage("Layer " + (v + 1) + "/" + variants, layer);
 
             for (int x = 0; x < W; x++)
                 for (int y = 0; y < H; y++)
                     if (layer[x, y]) map[x, y] = true;
-            Stage("Слияние после слоя " + (v + 1), map);
+            Stage("Merge after layer " + (v + 1), map);
         }
 
         RemoveDeadEnds(map);
         Grid = map;
-        Stage("ИТОГОВЫЙ ЛАБИРИНТ", map);
+        Stage("FINAL MAZE", map);
         return map;
     }
 
-    // ---------- 1. опорные точки ----------
+    // ---------- 1. anchor points ----------
     List<Vector2Int> PickPoints(int count)
     {
         int minDist = minPointDist;
@@ -113,8 +120,8 @@ public class MazeBuilder
                 if (res.Count == count)
                 {
                     if (minDist < minPointDist)
-                        Warning = "На карте " + cellsX + "x" + cellsY + " нельзя разнести точки на " +
-                                  minPointDist + ", использовано " + minDist + ".";
+                        Warning = "On a " + cellsX + "x" + cellsY + " map points can't be spaced by " +
+                                  minPointDist + ", used " + minDist + ".";
                     return res;
                 }
             }
@@ -123,7 +130,7 @@ public class MazeBuilder
         return res;
     }
 
-    // ---------- 2. один слой ----------
+    // ---------- 2. one layer ----------
     bool[,] BuildVariant()
     {
         var layer = Empty();
@@ -142,7 +149,7 @@ public class MazeBuilder
         return layer;
     }
 
-    // Путь длиннее кратчайшего в detourMin..detourMax раз
+    // Path longer than the shortest by detourMin..detourMax times
     List<Vector2Int> RoutedPath(Vector2Int from, Vector2Int to)
     {
         int shortest = Mathf.Max(1, (Mathf.Abs(from.x - to.x) + Mathf.Abs(from.y - to.y)) / 2);
@@ -167,7 +174,7 @@ public class MazeBuilder
                 path.AddRange(DijkstraPath(w, to, noise));
             }
 
-            // реальная длина = число уникальных клеток - 1
+            // real length = number of unique cells - 1
             var mark = new bool[W, H];
             int uniq = 0;
             foreach (var c in path)
@@ -177,14 +184,14 @@ public class MazeBuilder
             float err = Mathf.Abs((float)steps / shortest - target);
             if (err < bestErr) { bestErr = err; best = path; }
         }
-        // страховка: если все кандидаты были пропущены
+        // safety: if all candidates were skipped
         return best ?? DijkstraPath(from, to, 1f);
     }
 
-    // ---------- Дейкстра со случайной ценой ----------
+    // ---------- Dijkstra with random cost ----------
     struct Node { public float c; public int x, y; }
 
-    // Минимальная бинарная куча (в Unity нет встроенной PriorityQueue)
+    // Minimal binary heap (Unity has no built-in PriorityQueue)
     class MinHeap
     {
         readonly List<Node> a = new List<Node>();
@@ -229,7 +236,7 @@ public class MazeBuilder
     List<Vector2Int> DijkstraPath(Vector2Int from, Vector2Int to, float noise)
     {
         const float INF = 1e30f;
-        // буферы переиспользуются: на 50x50 (сетка 101x101) Дейкстра вызывается сотни раз
+        // buffers are reused: on 50x50 (grid 101x101) Dijkstra is called hundreds of times
         if (costBuf == null || costBuf.GetLength(0) != W || costBuf.GetLength(1) != H)
         {
             costBuf = new float[W, H];
@@ -269,14 +276,14 @@ public class MazeBuilder
         {
             Vector2Int p = prev[cur.x, cur.y];
             path.Add(cur);
-            path.Add(new Vector2Int((cur.x + p.x) / 2, (cur.y + p.y) / 2)); // проход между клетками
+            path.Add(new Vector2Int((cur.x + p.x) / 2, (cur.y + p.y) / 2)); // passage between cells
             cur = p;
         }
         path.Add(from);
         return path;
     }
 
-    // ---------- 3. устранение тупиков ----------
+    // ---------- 3. dead end removal ----------
     int CountOpen(bool[,] g, int x, int y)
     {
         int n = 0;
@@ -296,7 +303,7 @@ public class MazeBuilder
 
     void RemoveDeadEnds(bool[,] g)
     {
-        Stage("Тупики перед устранением: " + FindDeadEnds(g).Count, g);
+        Stage("Dead ends before removal: " + FindDeadEnds(g).Count, g);
 
         for (int pass = 1; pass <= 500; pass++)
         {
@@ -306,10 +313,10 @@ public class MazeBuilder
 
             foreach (var c in dead)
             {
-                if (CountOpen(g, c.x, c.y) != 1) continue; // мог исправиться раньше в этом проходе
+                if (CountOpen(g, c.x, c.y) != 1) continue; // may have been fixed earlier in this pass
 
-                var loops = new List<Vector2Int>();   // а) петля
-                var extend = new List<Vector2Int>();  // б) удлинение
+                var loops = new List<Vector2Int>();   // a) loop
+                var extend = new List<Vector2Int>();  // b) extension
                 foreach (var d in DIRS)
                 {
                     int wx = c.x + d.x, wy = c.y + d.y;
@@ -327,12 +334,12 @@ public class MazeBuilder
                 fixedCount++;
             }
 
-            Stage("Устранение тупиков, проход " + pass + ": исправлено " + fixedCount, g);
+            Stage("Dead end removal, pass " + pass + ": fixed " + fixedCount, g);
             if (fixedCount == 0) break;
         }
     }
 
-    // ---------- проверка ----------
+    // ---------- verification ----------
     public Report Verify()
     {
         var seen = new bool[W, H];

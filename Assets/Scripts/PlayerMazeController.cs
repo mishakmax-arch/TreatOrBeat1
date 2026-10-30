@@ -1,20 +1,36 @@
 using UnityEngine;
 
 /// <summary>
-/// Вешается на игрока (рядом с PlayerWaypointMover). Управление: WASD / стрелки.
-/// Игрок движется по проходам лабиринта и упирается в стены.
+/// Put on the player. Controls: WASD / arrows.
+/// The player moves along the maze passages and stops at walls.
 /// </summary>
 public class PlayerMazeController : MonoBehaviour
 {
     public MazeGenerator maze;
-    public float speed = 6f;        // юнитов в секунду (1 юнит = 1 тайл)
+    public float speed = 6f;        // units per second (1 unit = 1 tile)
 
     bool moving;
     Vector3 target;
 
+    void OnEnable()
+    {
+        if (maze != null) maze.OnMazeRebuilt += CancelMove;
+    }
+
+    void OnDisable()
+    {
+        if (maze != null) maze.OnMazeRebuilt -= CancelMove;
+    }
+
+    // the old target tile may be a wall in the new layout
+    void CancelMove()
+    {
+        moving = false;
+    }
+
     void Update()
     {
-        // лабиринт ещё не сгенерирован
+        // maze not generated yet
         if (maze == null || maze.Builder == null || maze.Builder.Grid == null) return;
 
         if (moving)
@@ -28,19 +44,17 @@ public class PlayerMazeController : MonoBehaviour
             else return;
         }
 
-        // читаем ввод (горизонталь в приоритете)
         int h = (int)Input.GetAxisRaw("Horizontal");
         int v = (int)Input.GetAxisRaw("Vertical");
         if (h == 0 && v == 0) return;
 
-        // в сетке лабиринта y=0 - верх экрана, поэтому "вверх" = y-1
+        // in the maze grid y=0 is the top of the screen, so "up" = y-1
         Vector2Int dir = h != 0 ? new Vector2Int(h, 0) : new Vector2Int(0, -v);
 
-        // текущая клетка берётся из позиции, поэтому телепорт на waypoint учитывается сам
         Vector2Int cell = maze.WorldToGrid(transform.position);
         Vector2Int next = cell + dir;
 
-        if (!IsFree(next)) return; // стена или край карты - стоим на месте
+        if (!IsFree(next)) return; // wall or map edge - stay in place
 
         Vector3 w = maze.CellToWorld(next);
         target = new Vector3(w.x, w.y, transform.position.z);
@@ -51,6 +65,6 @@ public class PlayerMazeController : MonoBehaviour
     {
         var g = maze.Builder.Grid;
         if (c.x < 0 || c.y < 0 || c.x >= maze.Builder.Width || c.y >= maze.Builder.Height) return false;
-        return g[c.x, c.y]; // true = проход, false = стена
+        return g[c.x, c.y]; // true = passage, false = wall
     }
 }

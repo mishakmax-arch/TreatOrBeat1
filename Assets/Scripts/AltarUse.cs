@@ -20,6 +20,7 @@ public class AltarUse : MonoBehaviour
         if (maze != null) maze.OnMazeGenerated -= ResetAltars;
     }
 
+    // only a full Generate() (a brand new set of altars) resets progress
     void ResetAltars()
     {
         ActivatedAltars.Clear();
@@ -54,7 +55,9 @@ public class AltarUse : MonoBehaviour
         ActivatedAltars[altarNumber] = true;
         NumberOfActivatedAltars++;
 
-        maze.ActivateWaypoint(altarNumber);               // <-- switches the altar to the 2nd sprite
-        changer.SetSprite(NumberOfActivatedAltars + 1);   // player sprite
+        maze.ActivateWaypoint(altarNumber);
+        changer.SetSprite(NumberOfActivatedAltars + 1);
+
+        maze.RebuildMazeKeepWaypoints();   // new walls, same altars and player
     }
 }
