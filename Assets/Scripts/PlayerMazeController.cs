@@ -9,17 +9,28 @@ public class PlayerMazeController : MonoBehaviour
     public MazeGenerator maze;
     public float speed = 6f;        // units per second (1 unit = 1 tile)
 
+    // --- добавить в класс ---
+    public float Speed { get { return speed; } }
+    public Vector2Int LastDir { get; private set; }
+    public float LastMoveTime { get; private set; } = -999f;
+
+    /// Клетка, в которой игрок находится, а если идёт, то в которую идёт.
+    public Vector2Int CurrentCell
+    {
+        get { return maze.WorldToGrid(moving ? target : transform.position); }
+    }
+
     bool moving;
     Vector3 target;
 
-    void OnEnable()
-    {
-        if (maze != null) maze.OnMazeRebuilt += CancelMove;
-    }
+    void OnEnable() { if (maze != null) maze.OnMazeGenerated += ResetMovement; }
+    void OnDisable() { if (maze != null) maze.OnMazeGenerated -= ResetMovement; }
 
-    void OnDisable()
+    void ResetMovement()
     {
-        if (maze != null) maze.OnMazeRebuilt -= CancelMove;
+        moving = false;
+        LastDir = Vector2Int.zero;
+        LastMoveTime = -999f;
     }
 
     // the old target tile may be a wall in the new layout
@@ -59,6 +70,9 @@ public class PlayerMazeController : MonoBehaviour
         Vector3 w = maze.CellToWorld(next);
         target = new Vector3(w.x, w.y, transform.position.z);
         moving = true;
+
+        LastDir = dir;
+        LastMoveTime = Time.time;
     }
 
     bool IsFree(Vector2Int c)
