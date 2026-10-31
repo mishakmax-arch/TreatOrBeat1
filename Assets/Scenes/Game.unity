@@ -153,7 +153,7 @@ MonoBehaviour:
   tilePixels: 64
   pixelsPerUnit: 64
   wallSprite: {fileID: 0}
-  floorSprite: {fileID: 0}
+  floorSprite: {fileID: -8785096165625438544, guid: c9ffa75769a8b274f8ebc4552537034c, type: 3}
   wallColor: {r: 0.15, g: 0.16, b: 0.2, a: 1}
   floorColor: {r: 0.85, g: 0.82, b: 0.72, a: 1}
   addColliders: 1
@@ -629,7 +629,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 3.4285715
+  orthographic size: 2.16
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -2629,7 +2629,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1894792651
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2703,7 +2703,7 @@ MonoBehaviour:
   darknessImage: {fileID: 1894792652}
   mainCamera: {fileID: 519420031}
   radius: -0.06
-  softness: 0.8
+  softness: 1
 --- !u!1 &1904122193
 GameObject:
   m_ObjectHideFlags: 0
@@ -2878,9 +2878,9 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b463c72d4ba577c438f7e6a52d9a321f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: '::'
+  m_EditorClassIdentifier: Assembly-CSharp::DetectionWarFog
   maze: {fileID: 52470957}
-  detectionCells: 6
+  detectionCells: 5
   shape: 0
   targetTag: Monster
   target: {fileID: 1351397817}
