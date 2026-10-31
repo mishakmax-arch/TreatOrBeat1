@@ -503,7 +503,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -4119406665376621699, guid: 900dd9c3d575a2c4a9fc28fe22921e4f, type: 3}
+  m_Sprite: {fileID: 4161571781314418468, guid: 0c8002f049aedde459e9aad9a9a8f41c, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1113,10 +1113,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1660008845}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.3, y: 0.75}
-  m_AnchorMax: {x: 0.7, y: 0.9}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0.3, y: 0.8046296}
+  m_AnchorMax: {x: 0.70416665, y: 0.95000005}
+  m_AnchoredPosition: {x: -4, y: 2.5}
+  m_SizeDelta: {x: -8, y: 5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1159925198
 MonoBehaviour:
@@ -2021,10 +2021,10 @@ RectTransform:
   - {fileID: 918492627}
   m_Father: {fileID: 1660008845}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.1, y: 0.3}
-  m_AnchorMax: {x: 0.3, y: 0.4}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0.064208336, y: 0.18885186}
+  m_AnchorMax: {x: 0.25939584, y: 0.27588886}
+  m_AnchoredPosition: {x: 0.5, y: 2}
+  m_SizeDelta: {x: 9, y: 14}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1605167923
 MonoBehaviour:
@@ -2840,8 +2840,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Player: {fileID: 1904122196}
+  playerController: {fileID: 0}
   maze: {fileID: 52470957}
   changer: {fileID: 1904122200}
+  monster: {fileID: 1351397820}
+  activateKey: 32
   ActivatedAltars: 
   NumberOfActivatedAltars: 0
   LoadScreen: {fileID: 1603164114}

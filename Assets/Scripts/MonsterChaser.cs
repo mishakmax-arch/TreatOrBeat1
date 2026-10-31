@@ -55,8 +55,17 @@ public class MonsterChaser : MonoBehaviour
         }
     }
 
-    /// Монстр появился и ещё не поймал игрока.
-    public bool IsActive { get { return active && !caught; } }
+    bool frozen;
+
+    /// Монстр на паузе: не двигается, не ловит игрока, не спавнится, не издаёт звуков.
+    public bool IsFrozen { get { return frozen; } }
+
+    /// Заморозить/разморозить монстра (на время активации алтаря и перезагрузки карты).
+    /// Если за время заморозки карта перестроилась, после разморозки монстр появится заново.
+    public void Freeze(bool value) { frozen = value; }
+
+    /// Монстр появился, не заморожен и ещё не поймал игрока.
+    public bool IsActive { get { return active && !caught && !frozen; } }
 
     /// Длина кратчайшего пути до игрока в клетках (обновляется на каждом шаге), -1 если неизвестна.
     public int PathDistanceToPlayer { get; private set; } = -1;
@@ -155,6 +164,8 @@ public class MonsterChaser : MonoBehaviour
         if (maze == null || player == null || maze.Builder == null || maze.Builder.Grid == null) return;
 
         SyncGrid();
+
+        if (frozen) return; // пауза: ни движения, ни поимки, ни спавна
 
         if (pendingSpawn) { pendingSpawn = false; Spawn(); return; }
         if (!active || caught) return;
