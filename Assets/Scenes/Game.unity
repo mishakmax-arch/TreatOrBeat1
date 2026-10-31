@@ -2629,7 +2629,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1894792651
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2702,6 +2702,8 @@ MonoBehaviour:
   player: {fileID: 1904122196}
   darknessImage: {fileID: 1894792652}
   mainCamera: {fileID: 519420031}
+  lightMask: {fileID: 0}
+  softnessStep: 0.2
   radius: -0.06
   softness: 1
 --- !u!1 &1904122193
@@ -2845,6 +2847,10 @@ MonoBehaviour:
   maze: {fileID: 52470957}
   changer: {fileID: 1904122200}
   monster: {fileID: 1351397820}
+  lightMask: {fileID: 0}
+  softnessStep: 0.2
+  detectionWarFog: {fileID: 1904122201}
+  detectionStep: 1
   activateKey: 32
   ActivatedAltars: 
   NumberOfActivatedAltars: 0
@@ -2880,7 +2886,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DetectionWarFog
   maze: {fileID: 52470957}
-  detectionCells: 5
+  detectionCells: 6
   shape: 0
   targetTag: Monster
   target: {fileID: 1351397817}
