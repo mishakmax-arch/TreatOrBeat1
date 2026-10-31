@@ -1543,6 +1543,8 @@ MonoBehaviour:
   speed: 4
   spawnDelay: 2
   catchDistance: 0.5
+  speedPerAltar: 0.3
+  maxSpeed: 5.5
   minSpawnPathDist: 20
   avoidLastSpawn: 1
   spawnOnEntranceExit: 1

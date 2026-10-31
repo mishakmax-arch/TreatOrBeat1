@@ -22,6 +22,10 @@ public class MonsterChaser : MonoBehaviour
     public float spawnDelay = 2f;       // сколько монстр стоит после появления
     public float catchDistance = 0.5f;  // дистанция поимки в мировых единицах
 
+    [Header("Ускорение от алтарей")]
+    public float speedPerAltar = 0.5f;  // прибавка к скорости за каждый активированный алтарь
+    public float maxSpeed = 0f;         // потолок скорости; 0 = без ограничения
+
     [Header("Спавн")]
     public int minSpawnPathDist = 30;
     public bool avoidLastSpawn = true;
@@ -38,6 +42,18 @@ public class MonsterChaser : MonoBehaviour
 
     public event Action OnCaught;
     public event Action OnSpawned;
+
+    int altarsActivated;
+
+    /// Текущая скорость: базовая (speed) + speedPerAltar за каждый активированный алтарь.
+    public float CurrentSpeed
+    {
+        get
+        {
+            float s = speed + speedPerAltar * altarsActivated;
+            return maxSpeed > 0f ? Mathf.Min(s, maxSpeed) : s;
+        }
+    }
 
     /// Монстр появился и ещё не поймал игрока.
     public bool IsActive { get { return active && !caught; } }
@@ -104,10 +120,15 @@ public class MonsterChaser : MonoBehaviour
     void HandleGenerated()
     {
         lastSpawn = new Vector2Int(-1, -1);
+        altarsActivated = 0;   // новая игра/новые алтари - скорость сбрасывается
         ScheduleSpawn();
     }
 
-    void HandleRebuilt() { ScheduleSpawn(); }
+    void HandleRebuilt()
+    {
+        altarsActivated++;     // один алтарь = одна перестройка
+        ScheduleSpawn();
+    }
 
     public void Respawn() { ScheduleSpawn(); }
 
@@ -153,7 +174,7 @@ public class MonsterChaser : MonoBehaviour
         // движение к следующей клетке
         if (moving)
         {
-            transform.position = Vector3.MoveTowards(transform.position, moveTarget, speed * Time.deltaTime);
+            transform.position = Vector3.MoveTowards(transform.position, moveTarget, CurrentSpeed * Time.deltaTime);
             if ((transform.position - moveTarget).sqrMagnitude > 0.0001f) return;
             transform.position = moveTarget;
             moving = false;
@@ -297,7 +318,7 @@ public class MonsterChaser : MonoBehaviour
     Vector2Int ChooseIntercept(Vector2Int playerCell)
     {
         float playerSpeed = Mathf.Max(0.01f, player.Speed);
-        float monsterSpeed = Mathf.Max(0.01f, speed);
+        float monsterSpeed = Mathf.Max(0.01f, CurrentSpeed);
 
         Vector2Int best = playerCell;
         float bestSlack = float.MaxValue;
