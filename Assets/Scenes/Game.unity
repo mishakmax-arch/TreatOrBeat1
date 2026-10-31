@@ -629,7 +629,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 2.16
+  orthographic size: 3.4285715
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -2627,7 +2627,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1894792651
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2701,7 +2701,7 @@ MonoBehaviour:
   darknessImage: {fileID: 1894792652}
   mainCamera: {fileID: 519420031}
   radius: -0.06
-  softness: 1
+  softness: 0.8
 --- !u!1 &1904122193
 GameObject:
   m_ObjectHideFlags: 0
@@ -2716,6 +2716,7 @@ GameObject:
   - component: {fileID: 1904122198}
   - component: {fileID: 1904122200}
   - component: {fileID: 1904122199}
+  - component: {fileID: 1904122201}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -2861,6 +2862,32 @@ MonoBehaviour:
   sprite4: {fileID: 4600807001766496466, guid: 3d4c5bb5c319b4b449b5c0e0efde75a6, type: 3}
   sprite5: {fileID: -6998647028696460469, guid: 0b9b467e990201c48a40709998cf9198, type: 3}
   target: {fileID: 1904122195}
+--- !u!114 &1904122201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1904122193}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b463c72d4ba577c438f7e6a52d9a321f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  maze: {fileID: 52470957}
+  detectionCells: 6
+  shape: 0
+  targetTag: Monster
+  target: {fileID: 1351397817}
+  blockedByWalls: 1
+  hideTargetWhenNotSeen: 1
+  checkInterval: 0.1
+  onTargetDetected:
+    m_PersistentCalls:
+      m_Calls: []
+  onTargetLost:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &2039644717
 GameObject:
   m_ObjectHideFlags: 0
