@@ -3,15 +3,43 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Алтарь активируется нажатием клавиши (по умолчанию Пробел), только если игрок стоит на его клетке.
+/// Пока идёт активация (экран загрузки и перестройка карты), игрок не может двигаться.
+/// </summary>
 public class AltarUse : MonoBehaviour
 {
     public Transform Player;
+    public PlayerMazeController playerController; // если пусто - берётся с объекта Player
     public MazeGenerator maze;
     public PlayerSpriteChanger changer;
+    public MonsterChaser monster;                 // замирает на время активации
+
+    public KeyCode activateKey = KeyCode.Space;
 
     public List<bool> ActivatedAltars = new List<bool>();
     public int NumberOfActivatedAltars = 0;
     public Image LoadScreen;
+
+    bool busy; // идёт активация, повторные нажатия игнорируются
+
+    void Start()
+    {
+        if (playerController == null && Player != null)
+            playerController = Player.GetComponent<PlayerMazeController>();
+
+        if (monster == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            monster = FindFirstObjectByType<MonsterChaser>();
+#else
+            monster = FindObjectOfType<MonsterChaser>();
+#endif
+        }
+
+        if (playerController == null) Debug.LogWarning("[AltarUse] PlayerMazeController не найден на Player: игрок не будет блокироваться.");
+        if (monster == null) Debug.LogWarning("[AltarUse] MonsterChaser не найден в сцене: монстр не будет замирать.");
+    }
 
     void OnEnable()
     {
@@ -33,7 +61,11 @@ public class AltarUse : MonoBehaviour
 
     void Update()
     {
-        if (maze == null || maze.WaypointCells == null || Player == null) return;
+        if (busy || maze == null || maze.WaypointCells == null || Player == null) return;
+        if (!Input.GetKeyDown(activateKey)) return;
+
+        // "наступил" = стоит в клетке алтаря, а не пробегает мимо
+        if (playerController != null && playerController.IsMoving) return;
 
         Vector2Int playerCell = maze.WorldToGrid(Player.position);
 
@@ -61,28 +93,40 @@ public class AltarUse : MonoBehaviour
         maze.ActivateWaypoint(altarNumber);
         changer.SetSprite(NumberOfActivatedAltars + 1);
 
-        StartCoroutine(FillLoadScreen());
+        StartCoroutine(ActivationSequence());
     }
 
-    IEnumerator FillLoadScreen()
+    IEnumerator ActivationSequence()
     {
-        LoadScreen.fillAmount = 0f;
+        busy = true;
+        if (playerController != null) playerController.InputLocked = true;
+        if (monster != null) monster.Freeze(true);
 
-        while (LoadScreen.fillAmount < 1f)
+        if (LoadScreen != null)
         {
-            LoadScreen.fillAmount += 1f * Time.deltaTime;
-            yield return null;
+            LoadScreen.fillAmount = 0f;
+            while (LoadScreen.fillAmount < 1f)
+            {
+                LoadScreen.fillAmount += 1f * Time.deltaTime;
+                yield return null;
+            }
+            LoadScreen.fillAmount = 1f;
         }
 
-        LoadScreen.fillAmount = 1f;
         maze.RebuildMazeKeepWaypoints();
 
-        while (LoadScreen.fillAmount > 0f)
+        if (LoadScreen != null)
         {
-            LoadScreen.fillAmount -= 1f * Time.deltaTime;
-            yield return null;
+            while (LoadScreen.fillAmount > 0f)
+            {
+                LoadScreen.fillAmount -= 1f * Time.deltaTime;
+                yield return null;
+            }
+            LoadScreen.fillAmount = 0f;
         }
 
-        LoadScreen.fillAmount = 0f;
+        if (playerController != null) playerController.InputLocked = false;
+        if (monster != null) monster.Freeze(false); // после перестройки монстр появится заново
+        busy = false;
     }
 }
