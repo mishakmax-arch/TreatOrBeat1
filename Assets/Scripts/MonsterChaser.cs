@@ -12,6 +12,8 @@ using UnityEngine;
 /// </summary>
 public class MonsterChaser : MonoBehaviour
 {
+    public GameManager gm;
+
     [Header("—сылки")]
     public MazeGenerator maze;
     public PlayerMazeController player;
@@ -63,6 +65,8 @@ public class MonsterChaser : MonoBehaviour
     // ------------------------------------------------------------------
     void Awake()
     {
+        if (gm == null) gm = GetComponent<GameManager>();
+
         renderers = GetComponentsInChildren<Renderer>(true);
         SetVisible(false); // пока не по€вилс€ - скрыт
     }
@@ -136,7 +140,8 @@ public class MonsterChaser : MonoBehaviour
         if (d.magnitude <= catchDistance)
         {
             caught = true;
-            if (OnCaught != null) OnCaught();
+            gm.GameOver();
+            OnCaught?.Invoke();
             return;
         }
 
