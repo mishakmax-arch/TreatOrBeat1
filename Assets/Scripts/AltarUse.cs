@@ -9,6 +9,8 @@ using UnityEngine.UI;
 /// </summary>
 public class AltarUse : MonoBehaviour
 {
+
+    public GameObject exitObject;   // становится видимым, когда игрок стоит на exit-алтаре
     public Transform Player;
     public PlayerMazeController playerController; // если пусто - берётся с объекта Player
     public MazeGenerator maze;
@@ -30,6 +32,7 @@ public class AltarUse : MonoBehaviour
 
     void Start()
     {
+        if (exitObject != null) exitObject.SetActive(false);
         if (playerController == null && Player != null)
             playerController = Player.GetComponent<PlayerMazeController>();
 
@@ -63,6 +66,18 @@ public class AltarUse : MonoBehaviour
         if (maze != null) maze.OnMazeGenerated += ResetAltars;
     }
 
+    void CheckExitAltar()
+    {
+        if (exitObject == null) return;
+        if (maze.ExitIndex < 0 || maze.ExitIndex >= maze.WaypointCells.Count) return;
+
+        Vector2Int playerCell = maze.WorldToGrid(Player.position);
+        bool onExit = maze.WaypointCells[maze.ExitIndex] == playerCell;
+
+        if (exitObject.activeSelf != onExit)
+            exitObject.SetActive(onExit);
+    }
+
     void OnDisable()
     {
         if (maze != null) maze.OnMazeGenerated -= ResetAltars;
@@ -79,6 +94,7 @@ public class AltarUse : MonoBehaviour
     void Update()
     {
         if (busy || maze == null || maze.WaypointCells == null || Player == null) return;
+        CheckExitAltar();
         if (!Input.GetKeyDown(activateKey)) return;
 
         // "наступил" = стоит в клетке алтаря, а не пробегает мимо
