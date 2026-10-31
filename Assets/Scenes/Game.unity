@@ -3247,6 +3247,7 @@ MonoBehaviour:
   maze: {fileID: 52470957}
   changer: {fileID: 1904122200}
   monster: {fileID: 1351397820}
+  monsterSound: {fileID: 1351397821}
   lightMask: {fileID: 1894792654}
   softnessStep: 0.18
   detectionWarFog: {fileID: 1904122201}
