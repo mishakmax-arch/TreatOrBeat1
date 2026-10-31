@@ -1100,6 +1100,7 @@ GameObject:
   - component: {fileID: 1069675093}
   - component: {fileID: 1069675095}
   - component: {fileID: 1069675094}
+  - component: {fileID: 1069675096}
   m_Layer: 5
   m_Name: Key Interface
   m_TagString: Untagged
@@ -1164,6 +1165,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1069675092}
   m_CullTransparentMesh: 1
+--- !u!114 &1069675096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1069675092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddab2a8ffccf91a4e9f763a473476475, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KeyChange
+  spriteRenderer: {fileID: 1069675094}
+  sprite1: {fileID: 4001806569842259837, guid: d5017fcfe288bd047ba894f6fe0f7745, type: 3}
+  sprite2: {fileID: -2429718682352912589, guid: 6da0a81984d96a54faac64e3008f05b1, type: 3}
+  sprite3: {fileID: 3841759758441307675, guid: 37302ed1218d5e74f8def00dc732baaf, type: 3}
+  sprite4: {fileID: 4976894417157070531, guid: 9b4271ae03954ad4da3bf656ae282901, type: 3}
+  sprite5: {fileID: -5837006649254693152, guid: fc8a0d2294e88ce45af0790a0645ade5, type: 3}
 --- !u!1 &1159925196
 GameObject:
   m_ObjectHideFlags: 0
@@ -3137,6 +3156,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4dc2fbf11f93b5f41a764b1254984595, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  keyChanger: {fileID: 1069675096}
   exitObject: {fileID: 1069675092}
   Player: {fileID: 1904122196}
   playerController: {fileID: 0}
