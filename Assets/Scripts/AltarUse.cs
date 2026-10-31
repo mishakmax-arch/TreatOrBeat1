@@ -9,6 +9,7 @@ using UnityEngine.UI;
 /// </summary>
 public class AltarUse : MonoBehaviour
 {
+    public ChangeLoadScreen changeLoadScreen;
     public KeyChange keyChanger;                     // если пусто - ищется в сцене
     public GameObject exitObject;   // становится видимым, когда игрок стоит на exit-алтаре
     public Transform Player;
@@ -132,6 +133,7 @@ public class AltarUse : MonoBehaviour
 
     IEnumerator ActivationSequence()
     {
+        changeLoadScreen.SwitchSprites(NumberOfActivatedAltars + 1);
         busy = true;
         if (playerController != null) playerController.InputLocked = true;
         if (monster != null) monster.Freeze(true);
@@ -148,6 +150,7 @@ public class AltarUse : MonoBehaviour
         }
 
         maze.RebuildMazeKeepWaypoints();
+        yield return new WaitForSeconds(0.5f); // wait a bit for the maze to rebuild1
 
         if (LoadScreen != null)
         {
