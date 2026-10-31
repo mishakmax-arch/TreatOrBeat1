@@ -2237,6 +2237,7 @@ GameObject:
   - component: {fileID: 1603164113}
   - component: {fileID: 1603164115}
   - component: {fileID: 1603164114}
+  - component: {fileID: 1603164116}
   m_Layer: 5
   m_Name: LoadScreen
   m_TagString: Untagged
@@ -2283,7 +2284,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 915840511295981153, guid: acfefdfd23e64d441a457d94ecdccdb4, type: 3}
+  m_Sprite: {fileID: 2605250145568688854, guid: b93d9b70285269d43b40c0f84313e4bc, type: 3}
   m_Type: 3
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2301,6 +2302,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1603164112}
   m_CullTransparentMesh: 1
+--- !u!114 &1603164116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1603164112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1dad54c2c3f6c4349ab80c2ccf9dab7b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  spriteRenderer: {fileID: 1603164114}
+  sprite1: {fileID: 2605250145568688854, guid: b93d9b70285269d43b40c0f84313e4bc, type: 3}
+  sprite2: {fileID: -7842826135811096667, guid: dcb7045a0c3768742988d2e9942100e4, type: 3}
+  sprite3: {fileID: 2200133771979226356, guid: 53888318036588b4dad80475316d6940, type: 3}
+  sprite4: {fileID: 39416145639818210, guid: 041c1947a59c9b24095875a9b113bcd9, type: 3}
+  sprite5: {fileID: -456364229699401882, guid: 1487c3faab2b6944bb81a738806c5851, type: 3}
 --- !u!1 &1605167921
 GameObject:
   m_ObjectHideFlags: 0
@@ -2945,7 +2964,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1894792651
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3156,6 +3175,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4dc2fbf11f93b5f41a764b1254984595, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  changeLoadScreen: {fileID: 1603164116}
   keyChanger: {fileID: 1069675096}
   exitObject: {fileID: 1069675092}
   Player: {fileID: 1904122196}
