@@ -17,6 +17,7 @@ public class AltarUse : MonoBehaviour
     public MazeGenerator maze;
     public PlayerSpriteChanger changer;
     public MonsterChaser monster;                 // замирает на время активации
+    public MonsterSound monsterSound;                       // замирает на время активации
 
     public PlayerLightMask lightMask;             // если пусто, ищется в сцене
     public float softnessStep = 0.18f;             // на сколько уменьшать softness за алтарь
@@ -172,6 +173,7 @@ public class AltarUse : MonoBehaviour
     {
         detectionWarFog.detectionCells -= 1;
         keyChanger.SwitchSprites(NumberOfActivatedAltars + 1);
+        monsterSound.intervalRange = new Vector2(monsterSound.intervalRange.x - 0.5f, monsterSound.intervalRange.y - 0.5f);
         if (lightMask == null) return;
         lightMask.softness = Mathf.Max(0f, lightMask.softness - softnessStep);
     }
