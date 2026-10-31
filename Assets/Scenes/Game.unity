@@ -168,8 +168,8 @@ MonoBehaviour:
   altarActivatedPrefab: {fileID: 1982312648105163164, guid: 31be23a1869248c4fa932c02424f2a2b, type: 3}
   waypointSprite: {fileID: 2394657181396823293, guid: e82fb6cb49b32f74cba17be41b430f03, type: 3}
   waypointActivatedSprite: {fileID: 4456767213076851669, guid: 7b707a529c4207f42b2df8c08be110c2, type: 3}
-  entranceSprite: {fileID: 0}
-  exitSprite: {fileID: 0}
+  entranceSprite: {fileID: -6048592969619513416, guid: fca06e483eb7d0a44879597de9438376, type: 3}
+  exitSprite: {fileID: 1472768065945725972, guid: 08a220970cb2b9c46894d93bd8904eb8, type: 3}
   waypointColor: {r: 0.95, g: 0.3, b: 0.25, a: 1}
   waypointActivatedColor: {r: 0.3, g: 0.85, b: 0.35, a: 1}
   entranceColor: {r: 0.25, g: 0.55, b: 0.95, a: 1}
@@ -1522,7 +1522,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -6998647028696460469, guid: 0b9b467e990201c48a40709998cf9198, type: 3}
+  m_Sprite: {fileID: -6998647028696460469, guid: f3d83a04d606c0f4da8d2a469d9a8f02, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1575,6 +1575,7 @@ MonoBehaviour:
   player: {fileID: 1904122196}
   clips:
   - {fileID: 8300000, guid: a76d468afaa8b8b438e93ac1290f521e, type: 3}
+  - {fileID: 8300000, guid: ec9895f33c2516844bfbd563e272c740, type: 3}
   intervalRange: {x: 4, y: 5}
   maxVolume: 1
   minHearDistance: 2
@@ -2782,7 +2783,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 100
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 8186202398115275463, guid: 06dfca01e87122e41b962d0e517cd7a3, type: 3}
+  m_Sprite: {fileID: 8186202398115275463, guid: eb2b7a6f5c00b874a8373ad9dc3195c8, type: 3}
   m_Color: {r: 1, g: 0.8535698, b: 0.17924517, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -2852,6 +2853,10 @@ MonoBehaviour:
   maze: {fileID: 52470957}
   changer: {fileID: 1904122200}
   monster: {fileID: 1351397820}
+  lightMask: {fileID: 0}
+  softnessStep: 0.2
+  detectionWarFog: {fileID: 1904122201}
+  detectionStep: 1
   activateKey: 32
   ActivatedAltars: 
   NumberOfActivatedAltars: 0
@@ -2868,11 +2873,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 006cc3a24ecdbb742b167a8f782b6e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sprite1: {fileID: 8186202398115275463, guid: 06dfca01e87122e41b962d0e517cd7a3, type: 3}
-  sprite2: {fileID: -5587543599713400978, guid: 64e440399f137cc4bbfe9c872b7e7da1, type: 3}
-  sprite3: {fileID: 740853182939590394, guid: 4d04dca0d77bbdc46a1218ee778fe303, type: 3}
-  sprite4: {fileID: 4600807001766496466, guid: 3d4c5bb5c319b4b449b5c0e0efde75a6, type: 3}
-  sprite5: {fileID: -6998647028696460469, guid: 0b9b467e990201c48a40709998cf9198, type: 3}
+  sprite1: {fileID: 8186202398115275463, guid: eb2b7a6f5c00b874a8373ad9dc3195c8, type: 3}
+  sprite2: {fileID: -5587543599713400978, guid: ef39847fdb431f94386292b8f55255b3, type: 3}
+  sprite3: {fileID: 740853182939590394, guid: 00e928bb2d3dcfa4cb088bb9d99095f3, type: 3}
+  sprite4: {fileID: 4600807001766496466, guid: a391fbdb71705a148952f9911e9424cc, type: 3}
+  sprite5: {fileID: -6998647028696460469, guid: f3d83a04d606c0f4da8d2a469d9a8f02, type: 3}
   target: {fileID: 1904122195}
 --- !u!114 &1904122201
 MonoBehaviour:
@@ -2887,7 +2892,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DetectionWarFog
   maze: {fileID: 52470957}
-  detectionCells: 5
+  detectionCells: 6
   shape: 0
   targetTag: Monster
   target: {fileID: 1351397817}

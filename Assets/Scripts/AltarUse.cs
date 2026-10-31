@@ -15,6 +15,11 @@ public class AltarUse : MonoBehaviour
     public PlayerSpriteChanger changer;
     public MonsterChaser monster;                 // замирает на врем€ активации
 
+    public PlayerLightMask lightMask;             // если пусто, ищетс€ в сцене
+    public float softnessStep = 0.18f;             // на сколько уменьшать softness за алтарь
+    public DetectionWarFog detectionWarFog; 
+    public float detectionStep = 1f;   // на сколько уменьшать softness за алтарь
+
     public KeyCode activateKey = KeyCode.Space;
 
     public List<bool> ActivatedAltars = new List<bool>();
@@ -39,6 +44,18 @@ public class AltarUse : MonoBehaviour
 
         if (playerController == null) Debug.LogWarning("[AltarUse] PlayerMazeController не найден на Player: игрок не будет блокироватьс€.");
         if (monster == null) Debug.LogWarning("[AltarUse] MonsterChaser не найден в сцене: монстр не будет замирать.");
+
+
+        if (lightMask == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            lightMask = FindFirstObjectByType<PlayerLightMask>();
+#else
+    lightMask = FindObjectOfType<PlayerLightMask>();
+#endif
+        }
+
+        if (lightMask == null) Debug.LogWarning("[AltarUse] PlayerLightMask не найден в сцене: softness не будет мен€тьс€.");
     }
 
     void OnEnable()
@@ -92,6 +109,7 @@ public class AltarUse : MonoBehaviour
 
         maze.ActivateWaypoint(altarNumber);
         changer.SetSprite(NumberOfActivatedAltars + 1);
+        DecreaseLightSoftness();
 
         StartCoroutine(ActivationSequence());
     }
@@ -128,5 +146,13 @@ public class AltarUse : MonoBehaviour
         if (playerController != null) playerController.InputLocked = false;
         if (monster != null) monster.Freeze(false); // после перестройки монстр по€витс€ заново
         busy = false;
+    }
+
+    // уменьшает м€гкость кра€ света при активации алтар€
+    void DecreaseLightSoftness()
+    {
+        if (lightMask == null) return;
+        lightMask.softness = Mathf.Max(0f, lightMask.softness - softnessStep);
+        detectionWarFog.detectionCells -= 1;
     }
 }

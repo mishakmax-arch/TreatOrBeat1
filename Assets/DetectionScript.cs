@@ -25,7 +25,7 @@ public class DetectionWarFog : MonoBehaviour
 
     [Header("Размер зоны")]
     [Tooltip("Радиус зоны в тайлах (тайл = 64 px)")]
-    [SerializeField] private int detectionCells = 5;
+    [SerializeField] public int detectionCells = 6;
     [SerializeField] private ZoneShape shape = ZoneShape.Circle;
 
     [Header("Цель")]
