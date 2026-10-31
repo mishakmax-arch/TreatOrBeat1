@@ -22,6 +22,15 @@ public class MazeGenerator : MonoBehaviour
     public Color floorColor = new Color(0.85f, 0.82f, 0.72f);
     public bool addColliders = true;
 
+    [Header("Wall autotile (see HotelAutotile.cs)")]
+    public bool useWallAutotile = true;
+    public string wallResourcesFolder = "HotelWall"; // Assets/Resources/HotelWall/hotel_<key>.png
+    public bool outsideIsWall = false;               // false - рамка и по краю карты
+    public Sprite doorSprite;                        // необязательно: HotelWall_door.png (дверь)
+    public bool noAdjacentDoors = true;               // не ставить двери в соседних клетках
+    public bool doorNeedsWallBehind = true;           // дверь только там, где сверху тоже стена
+    [Range(0f, 1f)] public float doorChance = 0.15f; // доля подходящих участков стены с дверью
+
     [Header("Altar prefabs (optional). Each can have its own animation.")]
     public GameObject altarPrefab;            // NOT activated altar
     public GameObject altarActivatedPrefab;   // ACTIVATED altar
@@ -86,6 +95,9 @@ public class MazeGenerator : MonoBehaviour
     Transform root;
     Tilemap tilemap;
     Tile wallTile, floorTile;
+    Tilemap overlayMap;      // двери поверх стен
+    Tile doorTile;
+    HotelAutotile autotile;
     Sprite normalSpriteRuntime, activatedSpriteRuntime, entranceSpriteRuntime, exitSpriteRuntime;
     List<GameObject> waypointVisuals;   // current prefab instance of each waypoint (null = sprite mode)
 
@@ -131,19 +143,50 @@ public class MazeGenerator : MonoBehaviour
         }
     }
 
+    TileBase TileAt(bool[,] g, int x, int y)
+    {
+        if (g[x, y]) return floorTile;
+        return autotile != null ? autotile.GetTile(g, x, y) : wallTile;
+    }
+
+    // дверь: только на стене, у которой слева и справа стена, а снизу пол
+    TileBase OverlayAt(bool[,] g, int x, int y)
+    {
+        if (doorTile == null || autotile == null || g[x, y]) return null;
+        return autotile.HasDoor(g, x, y, doorChance) ? doorTile : null;
+    }
+
     void DrawGridDiff(bool[,] old, bool[,] g)
     {
+        int W = g.GetLength(0), H = g.GetLength(1);
+        int r = autotile != null ? 2 : 0;   // с автотайлом меняется вид у соседей (±1), а решение о двери зависит ещё и от их соседей (±2)
+
+        var dirty = new bool[W, H];
+        for (int x = 0; x < W; x++)
+            for (int y = 0; y < H; y++)
+                if (old[x, y] != g[x, y])
+                    for (int dx = -r; dx <= r; dx++)
+                        for (int dy = -r; dy <= r; dy++)
+                        {
+                            int nx = x + dx, ny = y + dy;
+                            if (nx >= 0 && ny >= 0 && nx < W && ny < H) dirty[nx, ny] = true;
+                        }
+
         var pos = new List<Vector3Int>();
         var tiles = new List<TileBase>();
-        for (int x = 0; x < g.GetLength(0); x++)
-            for (int y = 0; y < g.GetLength(1); y++)
-                if (old[x, y] != g[x, y])
+        var ovTiles = new List<TileBase>();
+        for (int x = 0; x < W; x++)
+            for (int y = 0; y < H; y++)
+                if (dirty[x, y])
                 {
                     pos.Add(ToCell(x, y));
-                    tiles.Add(g[x, y] ? (TileBase)floorTile : wallTile);
+                    tiles.Add(TileAt(g, x, y));
+                    ovTiles.Add(OverlayAt(g, x, y));   // null убирает дверь
                 }
         tilemap.SetTiles(pos.ToArray(), tiles.ToArray());
+        overlayMap.SetTiles(pos.ToArray(), ovTiles.ToArray());
     }
+
     /// <summary>Builds a new maze layout but keeps all waypoints, their states and the player where they are.</summary>
     public void RebuildMazeKeepWaypoints()
     {
@@ -164,7 +207,7 @@ public class MazeGenerator : MonoBehaviour
             presetPoints = new List<Vector2Int>(WaypointCells)   // same altar cells
         };
         nb.Build();
-        var oldGrid = Builder.Grid; 
+        var oldGrid = Builder.Grid;
         Builder = nb;
 
         DrawGridDiff(oldGrid, Builder.Grid);    // only the tiles are redrawn; waypoints and player are not touched
@@ -214,8 +257,16 @@ public class MazeGenerator : MonoBehaviour
 
         if (addColliders) tmGo.AddComponent<TilemapCollider2D>();
 
+        var ovGo = new GameObject("Overlay");
+        ovGo.transform.SetParent(root, false);
+        overlayMap = ovGo.AddComponent<Tilemap>();
+        ovGo.AddComponent<TilemapRenderer>().sortingOrder = 1;   // выше стен, ниже алтарей (10)
+
         wallTile = MakeTile(wallSprite != null ? wallSprite : MakeSprite(wallColor, true), true);
         floorTile = MakeTile(floorSprite != null ? floorSprite : MakeSprite(floorColor, false), false);
+
+        autotile = useWallAutotile ? new HotelAutotile(wallResourcesFolder, outsideIsWall, wallTile) { noAdjacentDoors = noAdjacentDoors, doorNeedsWallBehind = doorNeedsWallBehind } : null;
+        doorTile = doorSprite != null ? MakeTile(doorSprite, false) : null;
 
         normalSpriteRuntime = waypointSprite != null ? waypointSprite : MakeCircleSprite(waypointColor);
         activatedSpriteRuntime = waypointActivatedSprite != null ? waypointActivatedSprite : MakeCircleSprite(waypointActivatedColor);
@@ -281,11 +332,24 @@ public class MazeGenerator : MonoBehaviour
             for (int y = 0; y < H; y++)
             {
                 pos[i] = ToCell(x, y);
-                tiles[i] = g[x, y] ? (TileBase)floorTile : wallTile;
+                tiles[i] = TileAt(g, x, y);
                 i++;
             }
         tilemap.ClearAllTiles();
         tilemap.SetTiles(pos, tiles);
+
+        overlayMap.ClearAllTiles();
+        var ovPos = new List<Vector3Int>();
+        var ovTiles = new List<TileBase>();
+        for (int x = 0; x < W; x++)
+            for (int y = 0; y < H; y++)
+            {
+                var ov = OverlayAt(g, x, y);
+                if (ov == null) continue;
+                ovPos.Add(ToCell(x, y));
+                ovTiles.Add(ov);
+            }
+        overlayMap.SetTiles(ovPos.ToArray(), ovTiles.ToArray());
 
         if (fitCamera) FitCamera(W, H);
     }

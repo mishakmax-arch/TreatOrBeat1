@@ -154,9 +154,16 @@ MonoBehaviour:
   pixelsPerUnit: 64
   wallSprite: {fileID: 0}
   floorSprite: {fileID: -8785096165625438544, guid: c9ffa75769a8b274f8ebc4552537034c, type: 3}
-  wallColor: {r: 0.15, g: 0.16, b: 0.2, a: 1}
+  wallColor: {r: 0, g: 0, b: 0, a: 1}
   floorColor: {r: 0.85, g: 0.82, b: 0.72, a: 1}
   addColliders: 1
+  useWallAutotile: 1
+  wallResourcesFolder: HotelWall
+  outsideIsWall: 0
+  doorSprite: {fileID: 21300000, guid: 8f39c5d68dff4f542820046ed8001581, type: 3}
+  noAdjacentDoors: 1
+  doorNeedsWallBehind: 1
+  doorChance: 0.2
   altarPrefab: {fileID: 7749929989406751228, guid: 819883e712fc31c4b8111b81e73129b0, type: 3}
   altarActivatedPrefab: {fileID: 1982312648105163164, guid: 31be23a1869248c4fa932c02424f2a2b, type: 3}
   waypointSprite: {fileID: 2394657181396823293, guid: e82fb6cb49b32f74cba17be41b430f03, type: 3}
@@ -2629,7 +2636,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1894792651
 RectTransform:
   m_ObjectHideFlags: 0
