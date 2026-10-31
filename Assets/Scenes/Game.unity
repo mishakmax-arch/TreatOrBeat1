@@ -637,7 +637,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 3.4285715
+  orthographic size: 2.5714285
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -2089,6 +2089,69 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1466765518}
   m_CullTransparentMesh: 1
+--- !u!1 &1474475092
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1474475093}
+  - component: {fileID: 1474475094}
+  m_Layer: 0
+  m_Name: TaskBar
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1474475093
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474475092}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 23.40443, y: 39.27471, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1474475094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474475092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ccbe664eb2c421748b3ad976fbb3f425, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TaskHUD
+  altars: {fileID: 0}
+  maze: {fileID: 52470957}
+  title: TASKS
+  collectTask: 'Collect key pieces: activate altars'
+  exitTask: Reach the exit and unlock the door
+  runWord: RUN!
+  runShowSeconds: 5
+  runFontSize: 120
+  runColor: {r: 0.95, g: 0.1, b: 0.1, a: 1}
+  pulseSpeed: 16
+  pulseAmount: 0.08
+  rightSide: 1
+  margin: {x: 40, y: 30}
+  fontSize: 30
+  panelColor: {r: 0, g: 0, b: 0, a: 0.5}
+  doneColor: {r: 0.55, g: 0.9, b: 0.55, a: 1}
+  taskText: {fileID: 0}
+  runText: {fileID: 0}
+  font: {fileID: 12800000, guid: b796d85e5c7377046a296543c83a28a9, type: 3}
 --- !u!1 &1592850740
 GameObject:
   m_ObjectHideFlags: 0
@@ -3774,3 +3837,4 @@ SceneRoots:
   - {fileID: 1351397817}
   - {fileID: 799932688}
   - {fileID: 2039644719}
+  - {fileID: 1474475093}
