@@ -9,7 +9,7 @@ using UnityEngine.UI;
 /// </summary>
 public class AltarUse : MonoBehaviour
 {
-
+    public KeyChange keyChanger;                     // если пусто - ищетс€ в сцене
     public GameObject exitObject;   // становитс€ видимым, когда игрок стоит на exit-алтаре
     public Transform Player;
     public PlayerMazeController playerController; // если пусто - берЄтс€ с объекта Player
@@ -167,8 +167,9 @@ public class AltarUse : MonoBehaviour
     // уменьшает м€гкость кра€ света при активации алтар€
     void DecreaseLightSoftness()
     {
+        detectionWarFog.detectionCells -= 1;
+        keyChanger.SwitchSprites(NumberOfActivatedAltars + 1);
         if (lightMask == null) return;
         lightMask.softness = Mathf.Max(0f, lightMask.softness - softnessStep);
-        detectionWarFog.detectionCells -= 1;
     }
 }
