@@ -131,6 +131,19 @@ public class MazeGenerator : MonoBehaviour
         }
     }
 
+    void DrawGridDiff(bool[,] old, bool[,] g)
+    {
+        var pos = new List<Vector3Int>();
+        var tiles = new List<TileBase>();
+        for (int x = 0; x < g.GetLength(0); x++)
+            for (int y = 0; y < g.GetLength(1); y++)
+                if (old[x, y] != g[x, y])
+                {
+                    pos.Add(ToCell(x, y));
+                    tiles.Add(g[x, y] ? (TileBase)floorTile : wallTile);
+                }
+        tilemap.SetTiles(pos.ToArray(), tiles.ToArray());
+    }
     /// <summary>Builds a new maze layout but keeps all waypoints, their states and the player where they are.</summary>
     public void RebuildMazeKeepWaypoints()
     {
@@ -151,9 +164,10 @@ public class MazeGenerator : MonoBehaviour
             presetPoints = new List<Vector2Int>(WaypointCells)   // same altar cells
         };
         nb.Build();
+        var oldGrid = Builder.Grid; 
         Builder = nb;
 
-        DrawGrid(Builder.Grid);   // only the tiles are redrawn; waypoints and player are not touched
+        DrawGridDiff(oldGrid, Builder.Grid);    // only the tiles are redrawn; waypoints and player are not touched
 
         if (OnMazeRebuilt != null) OnMazeRebuilt();
     }

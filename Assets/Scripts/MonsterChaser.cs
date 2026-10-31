@@ -4,11 +4,10 @@ using UnityEngine;
 
 /// <summary>
 /// Монстр: преследует игрока по лабиринту с упреждением (перехват).
-/// Ходит по клеткам сетки, поиск пути - BFS.
+/// Ходит по клеткам сетки, поиск пути - BFS (плоские массивы, без очистки, с ранним выходом).
 /// Появляется заново:
 ///   - после полной генерации (OnMazeGenerated),
 ///   - после активации алтаря и пересоздания стен (OnMazeRebuilt).
-/// Точка появления: случайный алтарь (waypoint), далёкий от игрока по реальному пути.
 /// </summary>
 public class MonsterChaser : MonoBehaviour
 {
@@ -22,9 +21,9 @@ public class MonsterChaser : MonoBehaviour
     public float catchDistance = 0.5f;  // дистанция поимки в мировых единицах
 
     [Header("Спавн")]
-    public int minSpawnPathDist = 30;       // минимум клеток по пути от игрока
-    public bool avoidLastSpawn = true;      // не появляться подряд на одной точке
-    public bool spawnOnEntranceExit = true; // разрешить появление на входе/выходе
+    public int minSpawnPathDist = 30;
+    public bool avoidLastSpawn = true;
+    public bool spawnOnEntranceExit = true;
 
     [Header("Упреждение")]
     public int maxLeadCells = 14;
@@ -33,11 +32,19 @@ public class MonsterChaser : MonoBehaviour
     public float leadStrength = 1f;     // 0 = простая погоня
 
     [Header("Отладка")]
-    public bool drawGizmos = true;
+    public bool drawGizmos = false;     // выключено: Gizmos в редакторе тоже стоят кадров
 
     public event Action OnCaught;
     public event Action OnSpawned;
 
+    /// Монстр появился и ещё не поймал игрока.
+    public bool IsActive { get { return active && !caught; } }
+
+    /// Длина кратчайшего пути до игрока в клетках (обновляется на каждом шаге), -1 если неизвестна.
+    public int PathDistanceToPlayer { get; private set; } = -1;
+
+    static readonly int[] DX = { 0, 0, -1, 1 };
+    static readonly int[] DY = { -1, 1, 0, 0 };
     static readonly Vector2Int[] DIRS =
     {
         new Vector2Int(0, -1), new Vector2Int(0, 1), new Vector2Int(-1, 0), new Vector2Int(1, 0)
@@ -45,16 +52,20 @@ public class MonsterChaser : MonoBehaviour
 
     // состояние
     bool pendingSpawn, active, moving, caught;
-    float activateTime;
+    float activateTime, nextPlanTime;
     Vector2Int cell;
     Vector2Int lastSpawn = new Vector2Int(-1, -1);
     Vector3 moveTarget;
     Renderer[] renderers;
 
-    // BFS-буферы
-    int[,] dist;
-    Vector2Int[,] prev;
-    readonly Queue<Vector2Int> queue = new Queue<Vector2Int>();
+    // плоская копия карты и буферы BFS (индекс = x * H + y)
+    bool[,] walkSource;
+    int W, H;
+    bool[] walk;
+    int[] dist, prevIdx, visit, targetMark, queueArr;
+    int stamp;
+
+    readonly List<Vector2Int> targets = new List<Vector2Int>();
 
     // отладка
     readonly List<Vector2Int> trajectory = new List<Vector2Int>();
@@ -64,14 +75,14 @@ public class MonsterChaser : MonoBehaviour
     void Awake()
     {
         renderers = GetComponentsInChildren<Renderer>(true);
-        SetVisible(false); // пока не появился - скрыт
+        SetVisible(false);
     }
 
     void OnEnable()
     {
         if (maze == null) return;
-        maze.OnMazeGenerated += HandleGenerated; // полная генерация: новые алтари
-        maze.OnMazeRebuilt += HandleRebuilt;     // алтарь активирован: новые стены, те же алтари
+        maze.OnMazeGenerated += HandleGenerated;
+        maze.OnMazeRebuilt += HandleRebuilt;
     }
 
     void OnDisable()
@@ -83,28 +94,19 @@ public class MonsterChaser : MonoBehaviour
 
     void Start()
     {
-        // карта могла быть построена раньше, чем включился скрипт
         if (maze != null && maze.Builder != null && maze.Builder.Grid != null) ScheduleSpawn();
     }
 
     void HandleGenerated()
     {
-        lastSpawn = new Vector2Int(-1, -1); // точки новые, старую запоминать нет смысла
+        lastSpawn = new Vector2Int(-1, -1);
         ScheduleSpawn();
     }
 
-    void HandleRebuilt()
-    {
-        ScheduleSpawn();
-    }
+    void HandleRebuilt() { ScheduleSpawn(); }
 
-    /// Можно вызвать вручную (например, после поимки игрока).
-    public void Respawn()
-    {
-        ScheduleSpawn();
-    }
+    public void Respawn() { ScheduleSpawn(); }
 
-    // Сбрасываем всё старое (оно строилось по старым стенам), спавн произойдёт в Update
     void ScheduleSpawn()
     {
         active = false;
@@ -112,6 +114,7 @@ public class MonsterChaser : MonoBehaviour
         caught = false;
         trajectory.Clear();
         SetVisible(false);
+        PathDistanceToPlayer = -1;
         pendingSpawn = true;
     }
 
@@ -126,14 +129,16 @@ public class MonsterChaser : MonoBehaviour
     {
         if (maze == null || player == null || maze.Builder == null || maze.Builder.Grid == null) return;
 
+        SyncGrid();
+
         if (pendingSpawn) { pendingSpawn = false; Spawn(); return; }
         if (!active || caught) return;
         if (Time.time < activateTime) return;
 
         // поимка
         Vector3 pp = player.transform.position;
-        Vector2 d = new Vector2(pp.x - transform.position.x, pp.y - transform.position.y);
-        if (d.magnitude <= catchDistance)
+        float ddx = pp.x - transform.position.x, ddy = pp.y - transform.position.y;
+        if (ddx * ddx + ddy * ddy <= catchDistance * catchDistance)
         {
             caught = true;
             if (OnCaught != null) OnCaught();
@@ -149,9 +154,11 @@ public class MonsterChaser : MonoBehaviour
             moving = false;
         }
 
-        // пришли в клетку - планируем следующий шаг
+        // не планируем чаще, чем раз в 0.1 с после неудачи (иначе BFS каждый кадр)
+        if (Time.time < nextPlanTime) return;
+
         Vector2Int next;
-        if (!PlanNextStep(out next)) return;
+        if (!PlanNextStep(out next)) { nextPlanTime = Time.time + 0.1f; return; }
 
         cell = next;
         Vector3 w = maze.CellToWorld(next);
@@ -167,11 +174,9 @@ public class MonsterChaser : MonoBehaviour
         if (points == null || points.Count == 0) return;
 
         Vector2Int playerCell = player.CurrentCell;
-        // игрок ещё не стоит на проходе (не успел встать на место) - повторим в следующем кадре
         if (!IsFree(playerCell)) { pendingSpawn = true; return; }
 
-        EnsureBuffers();
-        Bfs(playerCell);
+        Bfs(playerCell, null); // один раз за спавн - полный обход
 
         var candidates = new List<Vector2Int>();
         Vector2Int farthest = playerCell;
@@ -183,18 +188,17 @@ public class MonsterChaser : MonoBehaviour
 
             Vector2Int p = points[i];
             if (!IsFree(p)) continue;
-            int dd = dist[p.x, p.y];
-            if (dd < 0) continue; // недостижима
+            int dd = DistTo(p);
+            if (dd < 0) continue;
 
             if (dd > farthestD) { farthestD = dd; farthest = p; }
             if (dd >= minSpawnPathDist) candidates.Add(p);
         }
 
-        if (farthestD < 0) return; // нет ни одной подходящей точки
+        if (farthestD < 0) return;
 
         if (avoidLastSpawn && candidates.Count > 1) candidates.Remove(lastSpawn);
 
-        // если все точки ближе порога (маленькая карта) - берём самую дальнюю
         Vector2Int chosen = candidates.Count > 0
             ? candidates[UnityEngine.Random.Range(0, candidates.Count)]
             : farthest;
@@ -207,45 +211,49 @@ public class MonsterChaser : MonoBehaviour
 
         SetVisible(true);
         active = true;
+        nextPlanTime = 0f;
         activateTime = Time.time + spawnDelay;
         if (OnSpawned != null) OnSpawned();
     }
 
     // ------------------------------------------------------------------
-    // Упреждение + BFS
+    // Упреждение + BFS с ранним выходом
     bool PlanNextStep(out Vector2Int next)
     {
         next = cell;
-        EnsureBuffers();
-
-        Bfs(cell);
 
         Vector2Int playerCell = player.CurrentCell;
         if (!IsFree(playerCell)) return false;
-        Vector2Int target = playerCell;
 
-        if (leadStrength > 0f && Time.time - player.LastMoveTime < headingMemory)
-        {
-            BuildTrajectory(playerCell, player.LastDir, maxLeadCells);
-            target = ChooseIntercept(playerCell);
-        }
-        else
-        {
-            trajectory.Clear();
-        }
+        bool lead = leadStrength > 0f && Time.time - player.LastMoveTime < headingMemory;
+        if (lead) BuildTrajectory(playerCell, player.LastDir, maxLeadCells);
+        else trajectory.Clear();
+
+        // BFS нужен только до игрока и клеток его предсказанной траектории
+        targets.Clear();
+        targets.Add(playerCell);
+        for (int i = 0; i < trajectory.Count; i++) targets.Add(trajectory[i]);
+
+        Bfs(cell, targets);
+
+        PathDistanceToPlayer = DistTo(playerCell);
+
+        Vector2Int target = lead ? ChooseIntercept(playerCell) : playerCell;
         interceptCell = target;
 
         if (target == cell) target = playerCell;
         if (target == cell) return false;
-        if (dist[target.x, target.y] < 0) return false;
+        if (DistTo(target) < 0) return false;
 
-        Vector2Int cur = target;
-        while (prev[cur.x, cur.y] != cell)
+        // идём назад от цели до соседа текущей клетки
+        int startIdx = cell.x * H + cell.y;
+        int cur = target.x * H + target.y;
+        while (prevIdx[cur] != startIdx)
         {
-            cur = prev[cur.x, cur.y];
-            if (cur.x < 0) return false;
+            cur = prevIdx[cur];
+            if (cur < 0) return false;
         }
-        next = cur;
+        next = new Vector2Int(cur / H, cur % H);
         return true;
     }
 
@@ -268,8 +276,9 @@ public class MonsterChaser : MonoBehaviour
             {
                 Vector2Int turn = Vector2Int.zero;
                 int options = 0;
-                foreach (var nd in DIRS)
+                for (int k = 0; k < 4; k++)
                 {
+                    Vector2Int nd = DIRS[k];
                     if (nd == -d) continue;
                     if (IsFree(c + nd)) { turn = nd; options++; }
                 }
@@ -291,7 +300,7 @@ public class MonsterChaser : MonoBehaviour
         for (int k = 0; k < trajectory.Count; k++)
         {
             Vector2Int p = trajectory[k];
-            int dm = dist[p.x, p.y];
+            int dm = DistTo(p);
             if (dm < 0) continue;
 
             float tMonster = dm / monsterSpeed;
@@ -305,46 +314,95 @@ public class MonsterChaser : MonoBehaviour
     }
 
     // ------------------------------------------------------------------
-    void Bfs(Vector2Int from)
+    // Плоская копия карты: обновляется только когда Builder.Grid сменился (перестройка/генерация)
+    void SyncGrid()
     {
-        int W = maze.Builder.Width, H = maze.Builder.Height;
-        for (int x = 0; x < W; x++)
-            for (int y = 0; y < H; y++) { dist[x, y] = -1; prev[x, y] = new Vector2Int(-1, -1); }
+        var b = maze.Builder;
+        var g = b.Grid;
+        if (g == walkSource) return;
+        walkSource = g;
 
-        queue.Clear();
-        dist[from.x, from.y] = 0;
-        queue.Enqueue(from);
-
-        while (queue.Count > 0)
+        W = b.Width;
+        H = b.Height;
+        int n = W * H;
+        if (walk == null || walk.Length != n)
         {
-            Vector2Int c = queue.Dequeue();
-            foreach (var d in DIRS)
-            {
-                Vector2Int n = c + d;
-                if (!IsFree(n) || dist[n.x, n.y] >= 0) continue;
-                dist[n.x, n.y] = dist[c.x, c.y] + 1;
-                prev[n.x, n.y] = c;
-                queue.Enqueue(n);
-            }
+            walk = new bool[n];
+            dist = new int[n];
+            prevIdx = new int[n];
+            visit = new int[n];
+            targetMark = new int[n];
+            queueArr = new int[n];
+            stamp = 0;
         }
+        for (int x = 0; x < W; x++)
+            for (int y = 0; y < H; y++)
+                walk[x * H + y] = g[x, y];
     }
 
-    // Builder пересоздаётся при каждой перестройке, поэтому размер проверяем каждый раз
-    void EnsureBuffers()
+    int DistTo(Vector2Int c)
     {
-        int W = maze.Builder.Width, H = maze.Builder.Height;
-        if (dist == null || dist.GetLength(0) != W || dist.GetLength(1) != H)
-        {
-            dist = new int[W, H];
-            prev = new Vector2Int[W, H];
-        }
+        if (c.x < 0 || c.y < 0 || c.x >= W || c.y >= H) return -1;
+        int i = c.x * H + c.y;
+        return visit[i] == stamp ? dist[i] : -1;
     }
 
     bool IsFree(Vector2Int c)
     {
-        var b = maze.Builder;
-        if (c.x < 0 || c.y < 0 || c.x >= b.Width || c.y >= b.Height) return false;
-        return b.Grid[c.x, c.y];
+        if (c.x < 0 || c.y < 0 || c.x >= W || c.y >= H) return false;
+        return walk[c.x * H + c.y];
+    }
+
+    /// BFS без очистки буферов (посещено = visit[i] == stamp).
+    /// Если задан список целей, обход останавливается, как только найдены все.
+    void Bfs(Vector2Int from, List<Vector2Int> goals)
+    {
+        stamp++;
+
+        int remaining = 0;
+        if (goals != null)
+        {
+            for (int i = 0; i < goals.Count; i++)
+            {
+                Vector2Int g = goals[i];
+                if (g.x < 0 || g.y < 0 || g.x >= W || g.y >= H) continue;
+                int gi = g.x * H + g.y;
+                if (!walk[gi] || targetMark[gi] == stamp) continue;
+                targetMark[gi] = stamp;
+                remaining++;
+            }
+        }
+
+        int start = from.x * H + from.y;
+        int head = 0, tail = 0;
+        visit[start] = stamp;
+        dist[start] = 0;
+        prevIdx[start] = -1;
+        queueArr[tail++] = start;
+        if (goals != null && targetMark[start] == stamp) remaining--;
+
+        while (head < tail)
+        {
+            if (goals != null && remaining <= 0) break;
+
+            int c = queueArr[head++];
+            int cx = c / H, cy = c - cx * H;
+            int nd = dist[c] + 1;
+
+            for (int k = 0; k < 4; k++)
+            {
+                int nx = cx + DX[k], ny = cy + DY[k];
+                if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+                int n = nx * H + ny;
+                if (!walk[n] || visit[n] == stamp) continue;
+
+                visit[n] = stamp;
+                dist[n] = nd;
+                prevIdx[n] = c;
+                queueArr[tail++] = n;
+                if (goals != null && targetMark[n] == stamp) remaining--;
+            }
+        }
     }
 
     // ------------------------------------------------------------------
