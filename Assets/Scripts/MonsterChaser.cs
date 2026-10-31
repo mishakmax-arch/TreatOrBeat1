@@ -145,7 +145,7 @@ public class MonsterChaser : MonoBehaviour
         if (ddx * ddx + ddy * ddy <= catchDistance * catchDistance)
         {
             caught = true;
-            gm.GameOver();
+            if (gm != null) gm.GameOver();
             OnCaught?.Invoke();
             return;
         }
