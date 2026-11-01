@@ -23,6 +23,7 @@ public class ChangeLoadScreen : MonoBehaviour
 
     public void SwitchSprites(int SpriteNumber)
     {
+        if (spriteRenderer == null) return;   // добавлено: без Image не падаем
         switch (SpriteNumber)
         {
             case 1: spriteRenderer.sprite = sprite1; break;
@@ -30,7 +31,7 @@ public class ChangeLoadScreen : MonoBehaviour
             case 3: spriteRenderer.sprite = sprite3; break;
             case 4: spriteRenderer.sprite = sprite4; break;
             case 5: spriteRenderer.sprite = sprite5; break;
-            default: spriteRenderer.sprite = sprite1; break;
+            default: spriteRenderer.sprite = sprite5; break;   // 5 и больше - последний спрайт (раньше сбрасывало на первый)
         }
     }
 }

@@ -36,6 +36,11 @@ public class TaskHUD : MonoBehaviour
     public Color panelColor = new Color(0f, 0f, 0f, 0.5f);
     public Color doneColor = new Color(0.55f, 0.9f, 0.55f, 1f);
 
+    [Header("Скрывать таскбар")]
+    public bool hideOnPause = true;                 // пауза = Time.timeScale == 0 (или PauseMusic.SetPaused(true))
+    public bool hideOnDeath = true;                 // монстр поймал игрока
+    public MonsterChaser monster;                   // если пусто - ищется в сцене
+
     [Header("Свой UI (необязательно: если пусто - создаётся автоматически)")]
     public Text taskText;
     public Text runText;
@@ -44,6 +49,10 @@ public class TaskHUD : MonoBehaviour
     int lastActivated = -1, lastTotal = -1;
     bool runShown;
     float runTimer;
+    bool dead;
+    EscapeController escape;
+    bool hudVisible = true;
+    CanvasGroup group;
 
     void Awake()
     {
@@ -62,6 +71,20 @@ public class TaskHUD : MonoBehaviour
             maze = FindFirstObjectByType<MazeGenerator>();
 #else
             maze = FindObjectOfType<MazeGenerator>();
+#endif
+        }
+#if UNITY_2023_1_OR_NEWER
+        escape = FindFirstObjectByType<EscapeController>();
+#else
+        escape = FindObjectOfType<EscapeController>();
+#endif
+        if (monster == null && altars != null) monster = altars.monster;
+        if (monster == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            monster = FindFirstObjectByType<MonsterChaser>();
+#else
+            monster = FindObjectOfType<MonsterChaser>();
 #endif
         }
         if (altars == null) Debug.LogWarning("[TaskHUD] AltarUse не найден в сцене: счётчик работать не будет.");
@@ -84,9 +107,26 @@ public class TaskHUD : MonoBehaviour
         maze.OnMazeRebuilt -= HandleRebuilt;
     }
 
+    void Start()
+    {
+        if (monster != null) monster.OnCaught += HandleCaught;
+    }
+
+    void OnDestroy()
+    {
+        if (monster != null) monster.OnCaught -= HandleCaught;
+    }
+
+    // монстр поймал игрока: таскбар пропадает до новой игры
+    void HandleCaught() { dead = true; }
+
+    /// Можно вызвать из своего GameManager, если смерть определяется не через MonsterChaser.
+    public void SetDead(bool value) { dead = value; }
+
     // новая игра: сбрасываем RUN и обновляем текст
     void HandleGenerated()
     {
+        dead = false;
         runShown = false;
         runTimer = 0f;
         if (runText != null) runText.gameObject.SetActive(false);
@@ -118,8 +158,31 @@ public class TaskHUD : MonoBehaviour
 
     void Update()
     {
+        bool paused = hideOnPause && (Time.timeScale <= 0.0001f || PauseMusic.IsPaused);
+        bool escaped = escape != null && escape.Finished;   // в финале побега таскбар не нужен
+        bool hide = paused || escaped || IntroSlides.IsPlaying || (hideOnDeath && dead);   // во время предыстории таскбар скрыт
+        ApplyVisible(!hide);
+        if (hide) return;   // пока скрыт, таймер RUN не идёт
+
         UpdateTasks();
         UpdateRun();
+    }
+
+    void ApplyVisible(bool visible)
+    {
+        if (visible == hudVisible) return;
+        hudVisible = visible;
+
+        if (group != null)
+        {
+            group.alpha = visible ? 1f : 0f;
+        }
+        else
+        {
+            // свой UI без нашего Canvas: просто выключаем компоненты текста
+            if (taskText != null) taskText.enabled = visible;
+            if (runText != null) runText.enabled = visible;
+        }
     }
 
     void UpdateTasks()
@@ -182,6 +245,9 @@ public class TaskHUD : MonoBehaviour
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
         scaler.matchWidthOrHeight = 0.5f;
+        group = canvasGo.AddComponent<CanvasGroup>();
+        group.interactable = false;
+        group.blocksRaycasts = false;
 
         if (taskText == null)
         {

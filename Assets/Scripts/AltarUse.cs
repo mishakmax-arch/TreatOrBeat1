@@ -21,19 +21,55 @@ public class AltarUse : MonoBehaviour
 
     public PlayerLightMask lightMask;             // если пусто, ищется в сцене
     public float softnessStep = 0.18f;             // на сколько уменьшать softness за алтарь
-    public DetectionWarFog detectionWarFog; 
+    public DetectionWarFog detectionWarFog;
     public float detectionStep = 1f;   // на сколько уменьшать softness за алтарь
 
     public KeyCode activateKey = KeyCode.Space;
+
+    [Header("Звук активации алтаря")]
+    public AudioClip altarSound;
+    [Range(0f, 1f)] public float altarSoundVolume = 1f;
+    AudioSource sfx;
 
     public List<bool> ActivatedAltars = new List<bool>();
     public int NumberOfActivatedAltars = 0;
     public Image LoadScreen;
 
     bool busy; // идёт активация, повторные нажатия игнорируются
+    Vector2 baseMonsterInterval;
+    bool hasBaseInterval;
 
     void Start()
     {
+        // --- добавлено: источник звука алтаря ---
+        sfx = gameObject.AddComponent<AudioSource>();
+        sfx.playOnAwake = false;
+        sfx.spatialBlend = 0f;   // обычный 2D-звук
+
+        // --- добавлено: если ссылки не назначены в Inspector, ищем в сцене ---
+        if (keyChanger == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            keyChanger = FindFirstObjectByType<KeyChange>();
+#else
+            keyChanger = FindObjectOfType<KeyChange>();
+#endif
+        }
+        if (monsterSound == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            monsterSound = FindFirstObjectByType<MonsterSound>();
+#else
+            monsterSound = FindObjectOfType<MonsterSound>();
+#endif
+        }
+        if (monsterSound != null)
+        {
+            baseMonsterInterval = monsterSound.intervalRange;
+            hasBaseInterval = true;
+        }
+        // --- конец добавленного, дальше старый код ---
+
         if (exitObject != null) exitObject.SetActive(false);
         if (playerController == null && Player != null)
             playerController = Player.GetComponent<PlayerMazeController>();
@@ -56,7 +92,7 @@ public class AltarUse : MonoBehaviour
 #if UNITY_2023_1_OR_NEWER
             lightMask = FindFirstObjectByType<PlayerLightMask>();
 #else
-    lightMask = FindObjectOfType<PlayerLightMask>();
+            lightMask = FindObjectOfType<PlayerLightMask>();
 #endif
         }
 
@@ -91,6 +127,19 @@ public class AltarUse : MonoBehaviour
         ActivatedAltars.Clear();
         for (int i = 0; i < maze.WaypointCells.Count; i++) ActivatedAltars.Add(false);
         NumberOfActivatedAltars = 0;
+
+        // --- добавлено: новая игра - ключ, экран загрузки и интервал звуков монстра возвращаются к началу ---
+        // обёрнуто в try/catch, чтобы ошибка здесь не сломала остальных подписчиков OnMazeGenerated
+        try
+        {
+            if (keyChanger != null) keyChanger.SwitchSprites(1);
+            if (changeLoadScreen != null) changeLoadScreen.SwitchSprites(1);
+            if (monsterSound != null && hasBaseInterval) monsterSound.intervalRange = baseMonsterInterval;
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning("[AltarUse] Не удалось сбросить визуал при новой игре: " + e.Message);
+        }
     }
 
     void Update()
@@ -124,9 +173,10 @@ public class AltarUse : MonoBehaviour
 
         ActivatedAltars[altarNumber] = true;
         NumberOfActivatedAltars++;
+        if (altarSound != null && sfx != null) sfx.PlayOneShot(altarSound, altarSoundVolume);   // добавлено
 
         maze.ActivateWaypoint(altarNumber);
-        changer.SetSprite(NumberOfActivatedAltars + 1);
+        if (changer != null) changer.SetSprite(NumberOfActivatedAltars + 1);
         DecreaseLightSoftness();
 
         StartCoroutine(ActivationSequence());
@@ -134,7 +184,7 @@ public class AltarUse : MonoBehaviour
 
     IEnumerator ActivationSequence()
     {
-        changeLoadScreen.SwitchSprites(NumberOfActivatedAltars + 1);
+        if (changeLoadScreen != null) changeLoadScreen.SwitchSprites(NumberOfActivatedAltars + 1);
         busy = true;
         if (playerController != null) playerController.InputLocked = true;
         if (monster != null) monster.Freeze(true);
@@ -171,9 +221,14 @@ public class AltarUse : MonoBehaviour
     // уменьшает мягкость края света при активации алтаря
     void DecreaseLightSoftness()
     {
-        detectionWarFog.detectionCells -= 1;
-        keyChanger.SwitchSprites(NumberOfActivatedAltars + 1);
-        monsterSound.intervalRange = new Vector2(monsterSound.intervalRange.x - 0.5f, monsterSound.intervalRange.y - 0.5f);
+        if (detectionWarFog != null) detectionWarFog.detectionCells -= 1;
+        if (keyChanger != null) keyChanger.SwitchSprites(NumberOfActivatedAltars + 1);
+        if (monsterSound != null)
+        {
+            // не даём интервалу уйти ниже 1 секунды (иначе звуки пойдут подряд)
+            Vector2 r = monsterSound.intervalRange;
+            monsterSound.intervalRange = new Vector2(Mathf.Max(1f, r.x - 0.5f), Mathf.Max(1f, r.y - 0.5f));
+        }
         if (lightMask == null) return;
         lightMask.softness = Mathf.Max(0f, lightMask.softness - softnessStep);
     }
