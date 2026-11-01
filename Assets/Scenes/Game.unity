@@ -791,7 +791,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &582652694
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2008,7 +2008,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 2506243963154091273, guid: 7b12287a75c5392438f212ada4ba0a48, type: 3}
+  m_Sprite: {fileID: -7890000023356327230, guid: f521b71d431d8ca48a2560e8ef8b48c1, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2743,7 +2743,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.3, y: 0.75}
   m_AnchorMax: {x: 0.7, y: 0.9}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 576, y: 15}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1766257163
@@ -3782,14 +3782,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::IntroSlides
   slides:
-  - image: {fileID: -4119406665376621699, guid: 900dd9c3d575a2c4a9fc28fe22921e4f, type: 3}
-    caption: Part 1
+  - image: {fileID: 3722655911535295645, guid: 6112048923153b14f95ff019c5dc2a15, type: 3}
+    caption: Twenty-seven years ago, on Halloween Eve...
+    seconds: 10
+  - image: {fileID: 83262864762517677, guid: 4e9b18e9521fa5e47a572a6735b74b0b, type: 3}
+    caption: 'Something happened that could never be undone. '
+    seconds: 10
+  - image: {fileID: 7775495815509264112, guid: d8ea71644fa0d1c4687f40c86087541b, type: 3}
+    caption: That night, the Chef was murdered.
     seconds: 6
-  - image: {fileID: -3254779602812191047, guid: 9ad9db46302fa1f4caa3b878d1a03c92, type: 3}
-    caption: Part 2
+  - image: {fileID: 2121085098623898808, guid: f4d065663d499a94bb52e244967efedd, type: 3}
+    caption: But his soul found no rest.
     seconds: 6
-  - image: {fileID: 4161571781314418468, guid: 0c8002f049aedde459e9aad9a9a8f41c, type: 3}
-    caption: Part 3
+  - image: {fileID: 6268564933304740798, guid: 28acf7076b02784458e3fa9c75acf1b9, type: 3}
+    caption: ' It was locked away inside a pumpkin.'
     seconds: 6
   autoAdvance: 1
   showOnlyOnceAfterLaunch: 1
@@ -3797,7 +3803,7 @@ MonoBehaviour:
   inputDelay: 0.5
   typewriter: 1
   charsPerSecond: 40
-  captionFontSize: 34
+  captionFontSize: 54
   captionColor: {r: 1, g: 1, b: 1, a: 1}
   hintText: SPACE / click
   font: {fileID: 12800000, guid: b796d85e5c7377046a296543c83a28a9, type: 3}
