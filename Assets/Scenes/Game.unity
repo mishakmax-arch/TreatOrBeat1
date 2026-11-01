@@ -454,6 +454,74 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &366535155
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 366535157}
+  - component: {fileID: 366535156}
+  m_Layer: 0
+  m_Name: EscapeCheck
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &366535156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 366535155}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab5f05f0ef1acd94e970c23121b79aa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EscapeController
+  altars: {fileID: 0}
+  maze: {fileID: 0}
+  player: {fileID: 0}
+  monster: {fileID: 0}
+  tintColor: {r: 0.85, g: 0.05, b: 0.05, a: 0.22}
+  tintFadeIn: 2
+  tintPulse: 0.2
+  tintPulseSpeed: 2
+  useBuiltInKey: 1
+  openKey: 32
+  escapeSprite: {fileID: -4581203112782139165, guid: dbea799251ff49c4589faf59e0ef80b3, type: 3}
+  winScreen: {fileID: 1979438714}
+  winScreenImage: {fileID: 0}
+  hideButtonsOnWin: 1
+  imageScreenFraction: 1
+  escapeMusic: {fileID: 8300000, guid: 719c31a90a68c714784787f0306ec8b3, type: 3}
+  musicVolume: 0.51
+  fallbackSeconds: 16
+  fadeToBlackTime: 1.5
+  revealTime: 2
+  revealAlpha: 0.55
+  imageFadeInTime: 2
+  endFadeTime: 1.5
+  mainMenuScene: Menu
+--- !u!4 &366535157
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 366535155}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 68.12953, y: 8.8857, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &455834075
 GameObject:
   m_ObjectHideFlags: 0
@@ -1715,6 +1783,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterChaser
   gm: {fileID: 799932687}
+  jumpscare: {fileID: 0}
   maze: {fileID: 52470957}
   player: {fileID: 1904122198}
   speed: 3
@@ -2099,6 +2168,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1474475093}
   - component: {fileID: 1474475094}
+  - component: {fileID: 1474475095}
   m_Layer: 0
   m_Name: TaskBar
   m_TagString: Untagged
@@ -2149,9 +2219,35 @@ MonoBehaviour:
   fontSize: 30
   panelColor: {r: 0, g: 0, b: 0, a: 0.5}
   doneColor: {r: 0.55, g: 0.9, b: 0.55, a: 1}
+  hideOnPause: 1
+  hideOnDeath: 1
+  monster: {fileID: 0}
   taskText: {fileID: 0}
   runText: {fileID: 0}
   font: {fileID: 12800000, guid: b796d85e5c7377046a296543c83a28a9, type: 3}
+--- !u!114 &1474475095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474475092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d87186cfb99af314d892e1c1251de845, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PauseMusic
+  pauseClip: {fileID: 8300000, guid: 9270cfff2f136614689b5e81d7c96c75, type: 3}
+  pauseVolume: 0.6
+  gameOverClip: {fileID: 8300000, guid: ed02e921400ddbc48b23980e70656e77, type: 3}
+  gameOverVolume: 0.22
+  loopGameOver: 1
+  fadeTime: 0.3
+  autoDetectPause: 1
+  silenceOtherAudio: 1
+  monster: {fileID: 0}
+  jumpscare: {fileID: 0}
+  maze: {fileID: 0}
 --- !u!1 &1592850740
 GameObject:
   m_ObjectHideFlags: 0
@@ -3118,6 +3214,7 @@ GameObject:
   - component: {fileID: 1904122199}
   - component: {fileID: 1904122201}
   - component: {fileID: 1904122202}
+  - component: {fileID: 1904122203}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -3249,10 +3346,12 @@ MonoBehaviour:
   monster: {fileID: 1351397820}
   monsterSound: {fileID: 1351397821}
   lightMask: {fileID: 1894792654}
-  softnessStep: 0.18
+  softnessStep: 0.15
   detectionWarFog: {fileID: 1904122201}
   detectionStep: 1
   activateKey: 32
+  altarSound: {fileID: 8300000, guid: 336f19cdfd7e2e549b4434ed0c444caa, type: 3}
+  altarSoundVolume: 1
   ActivatedAltars: 
   NumberOfActivatedAltars: 0
   LoadScreen: {fileID: 1603164114}
@@ -3397,6 +3496,31 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1904122203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1904122193}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40b6a707dcc64ae4f84909d3235fa5c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerEmberTrail
+  controller: {fileID: 0}
+  playerSprite: {fileID: 0}
+  movingRate: 35
+  idleRate: 3
+  lifetime: {x: 0.45, y: 0.85}
+  size: {x: 0.06, y: 0.13}
+  colorA: {r: 1, g: 0.55, b: 0.1, a: 1}
+  colorB: {r: 1, g: 0.85, b: 0.3, a: 1}
+  riseSpeed: 0.5
+  spread: 0.12
+  emitRadius: 0.12
+  orderOffset: 0
+  zOffset: 0.05
 --- !u!1 &1949782373
 GameObject:
   m_ObjectHideFlags: 0
@@ -3569,6 +3693,131 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &1989662888
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1989662890}
+  - component: {fileID: 1989662889}
+  m_Layer: 0
+  m_Name: IntroSlides
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1989662889
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1989662888}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce42c51af5e14db44a2b232baab14004, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IntroSlides
+  slides:
+  - image: {fileID: -4119406665376621699, guid: 900dd9c3d575a2c4a9fc28fe22921e4f, type: 3}
+    caption: Part 1
+    seconds: 6
+  - image: {fileID: -3254779602812191047, guid: 9ad9db46302fa1f4caa3b878d1a03c92, type: 3}
+    caption: Part 2
+    seconds: 6
+  - image: {fileID: 4161571781314418468, guid: 0c8002f049aedde459e9aad9a9a8f41c, type: 3}
+    caption: Part 3
+    seconds: 6
+  autoAdvance: 1
+  showOnlyOnceAfterLaunch: 1
+  fadeTime: 0.8
+  inputDelay: 0.5
+  typewriter: 1
+  charsPerSecond: 40
+  captionFontSize: 34
+  captionColor: {r: 1, g: 1, b: 1, a: 1}
+  hintText: SPACE / click
+  font: {fileID: 12800000, guid: b796d85e5c7377046a296543c83a28a9, type: 3}
+  introMusic: {fileID: 8300000, guid: 9270cfff2f136614689b5e81d7c96c75, type: 3}
+  musicVolume: 0.6
+  silenceOtherAudio: 1
+  player: {fileID: 0}
+  monster: {fileID: 0}
+--- !u!4 &1989662890
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1989662888}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 19.51166, y: 70.60839, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2006389544
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2006389546}
+  - component: {fileID: 2006389545}
+  m_Layer: 0
+  m_Name: Jumpscare
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2006389545
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2006389544}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11da843f9950d004baadb89ab5a22bce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Jumpscare
+  player: {fileID: 0}
+  scareSprite: {fileID: 21300000, guid: 25a36efc37afb664fa6085d48aa87d78, type: 3}
+  scareSound: {fileID: 8300000, guid: 5db49dd0346111347ae5fc0bbc45a7ee, type: 3}
+  volume: 1
+  preserveAspect: 0
+  useClipLength: 1
+  duration: 1.2
+  maxDuration: 3
+  shake: 25
+  zoomFrom: 1
+  zoomTo: 1.2
+  silenceOtherAudio: 1
+--- !u!4 &2006389546
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2006389544}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 50.20888, y: 51.5716, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2018053857
 GameObject:
   m_ObjectHideFlags: 0
@@ -3839,3 +4088,6 @@ SceneRoots:
   - {fileID: 799932688}
   - {fileID: 2039644719}
   - {fileID: 1474475093}
+  - {fileID: 366535157}
+  - {fileID: 2006389546}
+  - {fileID: 1989662890}

@@ -12,6 +12,7 @@ using UnityEngine;
 public class MonsterChaser : MonoBehaviour
 {
     public GameManager gm;
+    public Jumpscare jumpscare;          // скример перед GameOver (если пусто - ищетс€ в сцене)
 
     [Header("—сылки")]
     public MazeGenerator maze;
@@ -102,6 +103,14 @@ public class MonsterChaser : MonoBehaviour
     void Awake()
     {
         if (gm == null) gm = GetComponent<GameManager>();
+        if (jumpscare == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            jumpscare = FindFirstObjectByType<Jumpscare>();
+#else
+            jumpscare = FindObjectOfType<Jumpscare>();
+#endif
+        }
 
         renderers = GetComponentsInChildren<Renderer>(true);
         SetVisible(false);
@@ -177,7 +186,11 @@ public class MonsterChaser : MonoBehaviour
         if (ddx * ddx + ddy * ddy <= catchDistance * catchDistance)
         {
             caught = true;
-            if (gm != null) gm.GameOver();
+            // сначала скример, потом GameOver (затемнение как раньше)
+            if (jumpscare != null && !jumpscare.IsPlaying)
+                jumpscare.Play(delegate { if (gm != null) gm.GameOver(); });
+            else if (gm != null)
+                gm.GameOver();
             OnCaught?.Invoke();
             return;
         }
