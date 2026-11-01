@@ -487,6 +487,8 @@ MonoBehaviour:
   maze: {fileID: 0}
   player: {fileID: 0}
   monster: {fileID: 0}
+  keyInterface: {fileID: 1069675092}
+  hideKeyOnDeath: 1
   tintColor: {r: 0.85, g: 0.05, b: 0.05, a: 0.22}
   tintFadeIn: 2
   tintPulse: 0.2
@@ -3715,7 +3717,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1173743140}
-  - {fileID: 1592850741}
   - {fileID: 1949782374}
   m_Father: {fileID: 346406141}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
