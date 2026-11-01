@@ -13,8 +13,8 @@ using UnityEngine.Tilemaps;
 ///
 /// Схема по умолчанию (вся сетка 21 x 12, вместе со стенами):
 ///   левая комната  8x8   - пол x 1..8,  y 3..10
-///   правая комната 10x10 - x 10..19, y 1..10: внутри мини-лабиринт из коридоров шириной 1 клетку,
-///                          всё остальное внутри неё - стена (wallAreas)
+///   правая комната - x 10..18, y 1..9: мини-лабиринт из коридоров шириной 1 клетку,
+///                    всё остальное внутри неё - стена (wallAreas); зелёная точка - клетка (18, 6)
 ///   общая стена x = 9, проход в ней на клетке (9, 7)
 ///   спавн в левом верхнем углу левой комнаты - (1, 3)
 /// Чтобы применить схему к уже настроенному компоненту: меню компонента -> "Load Default Layout".
@@ -35,7 +35,8 @@ public class RoomGenerator : MonoBehaviour
     public Vector2Int spawnCell = new Vector2Int(1, 3);
 
     // ---------- схема по умолчанию ----------
-    // Правая комната: локальная клетка (col, row) = сетка (10 + col, 1 + row).
+    // Правая комната - мини-лабиринт. Его левый коридор (x = 10) стоит вплотную к общей стене (x = 9),
+    // поэтому между комнатами одна стена, а не двойная.
     static List<RectInt> DefaultRooms()
     {
         return new List<RectInt>
@@ -43,15 +44,14 @@ public class RoomGenerator : MonoBehaviour
             new RectInt(1, 3, 8, 8),     // левая комната 8x8
 
             // правая комната - мини-лабиринт (коридоры шириной 1 клетку)
-            new RectInt(10, 7, 2, 1),    // от прохода в стене до большого кольца
-            new RectInt(11, 3, 1, 7),    // большое кольцо: левая сторона
-            new RectInt(17, 3, 1, 7),    //                 правая сторона
-            new RectInt(11, 3, 7, 1),    //                 верх
-            new RectInt(11, 9, 7, 1),    //                 низ
-            new RectInt(11, 1, 5, 1),    // малое кольцо сверху: верх
-            new RectInt(11, 1, 1, 3),    //                      левая сторона
-            new RectInt(15, 1, 1, 3),    //                      правая сторона
-            new RectInt(17, 6, 3, 1),    // ответвление вправо (к зелёной точке, клетка 19, 6)
+            new RectInt(10, 3, 1, 7),    // большое кольцо: левая сторона (проход (9, 7) ведёт прямо в неё)
+            new RectInt(16, 3, 1, 7),    //                 правая сторона
+            new RectInt(10, 3, 7, 1),    //                 верх
+            new RectInt(10, 9, 7, 1),    //                 низ
+            new RectInt(10, 1, 5, 1),    // малое кольцо сверху: верх
+            new RectInt(10, 1, 1, 3),    //                      левая сторона
+            new RectInt(14, 1, 1, 3),    //                      правая сторона
+            new RectInt(16, 6, 3, 1),    // ответвление вправо (к зелёной точке, клетка 18, 6)
         };
     }
 
@@ -62,11 +62,11 @@ public class RoomGenerator : MonoBehaviour
 
     static List<RectInt> DefaultWallAreas()
     {
-        return new List<RectInt> { new RectInt(9, 0, 12, 12) }; // вся правая комната вместе с её стенами
+        return new List<RectInt> { new RectInt(9, 0, 11, 12) }; // вся правая комната вместе с её стенами
     }
 
     // Версия схемы. Если в сцене сохранена более старая - при запуске схема обновится сама.
-    const int LAYOUT_VERSION = 2;
+    const int LAYOUT_VERSION = 3;
     [SerializeField, HideInInspector] int layoutVersion = 0;
 
     /// <summary>Возвращает в компонент схему по умолчанию (комнаты, проходы, стены, спавн). Объекты не трогает.</summary>
@@ -91,6 +91,12 @@ public class RoomGenerator : MonoBehaviour
     void UpgradeLayoutIfOld()
     {
         if (layoutVersion >= LAYOUT_VERSION) return;
+
+        // в версии 3 лабиринт сдвинут на 1 клетку влево - сдвигаем и объекты, стоящие в нём
+        if (layoutVersion == 2 && objects != null)
+            foreach (var o in objects)
+                if (o != null && o.cell.x >= 10) o.cell = new Vector2Int(o.cell.x - 1, o.cell.y);
+
         Debug.Log("[RoomGenerator] Схема в сцене устарела - загружена новая (мини-лабиринт в правой комнате).");
         LoadDefaultLayout();
     }
