@@ -791,7 +791,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &582652694
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3795,7 +3795,7 @@ MonoBehaviour:
     caption: But his soul found no rest.
     seconds: 6
   - image: {fileID: 6268564933304740798, guid: 28acf7076b02784458e3fa9c75acf1b9, type: 3}
-    caption: ' It was locked away inside a pumpkin.'
+    caption: ' It possessed the pumpkin.'
     seconds: 6
   autoAdvance: 1
   showOnlyOnceAfterLaunch: 1
