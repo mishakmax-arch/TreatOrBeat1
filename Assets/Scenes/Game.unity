@@ -2259,6 +2259,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1521629783}
+  - component: {fileID: 1521629784}
   m_Layer: 0
   m_Name: AltarHint
   m_TagString: Untagged
@@ -2281,6 +2282,30 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1521629784
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1521629782}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25f79f7810779df4f8c16ec8777fd04c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AltarHint
+  text: Use
+  icon: {fileID: -5643105228771564274, guid: 7ea3b4832bd6125468b3703577ad7d8a, type: 3}
+  offset: {x: 0, y: 0.9}
+  iconSize: 0.4
+  spacing: 0.12
+  fontSize: 3
+  textColor: {r: 1, g: 1, b: 1, a: 1}
+  font: {fileID: 11400000, guid: abef3570331b73041b7c887843967f26, type: 2}
+  useBackground: 1
+  backgroundColor: {r: 0, g: 0, b: 0, a: 0.7}
+  padding: {x: 0.12, y: 0.08}
+  sortingOrder: 100
 --- !u!1 &1592850740
 GameObject:
   m_ObjectHideFlags: 0
@@ -3383,6 +3408,7 @@ MonoBehaviour:
   detectionWarFog: {fileID: 1904122201}
   detectionStep: 1
   activateKey: 32
+  altarHint: {fileID: 1521629784}
   altarSound: {fileID: 8300000, guid: 336f19cdfd7e2e549b4434ed0c444caa, type: 3}
   altarSoundVolume: 1
   ActivatedAltars: 
@@ -3718,6 +3744,7 @@ RectTransform:
   m_Children:
   - {fileID: 1173743140}
   - {fileID: 1949782374}
+  - {fileID: 1592850741}
   m_Father: {fileID: 346406141}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
