@@ -26,6 +26,9 @@ public class AltarUse : MonoBehaviour
 
     public KeyCode activateKey = KeyCode.Space;
 
+    [Header("Подсказка 'нажать Пробел'")]
+    public AltarHint altarHint;     // объект со скриптом AltarHint: иконка пробела + подпись
+
     [Header("Звук активации алтаря")]
     public AudioClip altarSound;
     [Range(0f, 1f)] public float altarSoundVolume = 1f;
@@ -36,6 +39,8 @@ public class AltarUse : MonoBehaviour
     public Image LoadScreen;
 
     bool busy; // идёт активация, повторные нажатия игнорируются
+    bool hintVisible;
+    int hintAltar = -1;
     Vector2 baseMonsterInterval;
     bool hasBaseInterval;
 
@@ -45,6 +50,8 @@ public class AltarUse : MonoBehaviour
         sfx = gameObject.AddComponent<AudioSource>();
         sfx.playOnAwake = false;
         sfx.spatialBlend = 0f;   // обычный 2D-звук
+
+        if (altarHint != null) altarHint.Hide();
 
         // --- добавлено: если ссылки не назначены в Inspector, ищем в сцене ---
         if (keyChanger == null)
@@ -127,6 +134,7 @@ public class AltarUse : MonoBehaviour
         ActivatedAltars.Clear();
         for (int i = 0; i < maze.WaypointCells.Count; i++) ActivatedAltars.Add(false);
         NumberOfActivatedAltars = 0;
+        HideHint();
 
         // --- добавлено: новая игра - ключ, экран загрузки и интервал звуков монстра возвращаются к началу ---
         // обёрнуто в try/catch, чтобы ошибка здесь не сломала остальных подписчиков OnMazeGenerated
@@ -146,6 +154,7 @@ public class AltarUse : MonoBehaviour
     {
         if (busy || maze == null || maze.WaypointCells == null || Player == null) return;
         CheckExitAltar();
+        UpdateHint();
         if (!Input.GetKeyDown(activateKey)) return;
 
         // "наступил" = стоит в клетке алтаря, а не пробегает мимо
@@ -173,6 +182,7 @@ public class AltarUse : MonoBehaviour
 
         ActivatedAltars[altarNumber] = true;
         NumberOfActivatedAltars++;
+        HideHint();
         if (altarSound != null && sfx != null) sfx.PlayOneShot(altarSound, altarSoundVolume);   // добавлено
 
         maze.ActivateWaypoint(altarNumber);
@@ -216,6 +226,48 @@ public class AltarUse : MonoBehaviour
         if (playerController != null) playerController.InputLocked = false;
         if (monster != null) monster.Freeze(false); // после перестройки монстр появится заново
         busy = false;
+    }
+
+    // ---------- подсказка "нажать Пробел" ----------
+
+    // индекс ещё не активированного алтаря, на котором стоит игрок, или -1
+    int AltarUnderPlayer()
+    {
+        // та же логика, что у активации: стоит на клетке, не идёт, не заблокирован, игра не на паузе
+        if (playerController != null && (playerController.IsMoving || playerController.InputLocked)) return -1;
+        if (Time.timeScale <= 0f) return -1;
+
+        Vector2Int cell = maze.WorldToGrid(Player.position);
+        for (int i = 0; i < maze.WaypointCells.Count; i++)
+        {
+            if (i == maze.EntranceIndex || i == maze.ExitIndex) continue;
+            if (maze.WaypointCells[i] != cell) continue;
+            return (i < ActivatedAltars.Count && !ActivatedAltars[i]) ? i : -1;
+        }
+        return -1;
+    }
+
+    void UpdateHint()
+    {
+        if (altarHint == null) return;
+
+        int i = AltarUnderPlayer();
+        if (i < 0) { HideHint(); return; }
+
+        if (!hintVisible || i != hintAltar)
+        {
+            altarHint.transform.position = maze.CellToWorld(maze.WaypointCells[i]);
+            altarHint.Show();
+            hintVisible = true;
+            hintAltar = i;
+        }
+    }
+
+    void HideHint()
+    {
+        if (altarHint != null && hintVisible) altarHint.Hide();
+        hintVisible = false;
+        hintAltar = -1;
     }
 
     // уменьшает мягкость края света при активации алтаря
