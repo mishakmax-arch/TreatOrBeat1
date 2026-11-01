@@ -26,6 +26,10 @@ public class EscapeController : MonoBehaviour
     public PlayerMazeController player;
     public MonsterChaser monster;
 
+    [Header("Интерфейс ключа (Key Interface)")]
+    public GameObject keyInterface;             // если пусто - берётся объект с компонентом KeyChange
+    public bool hideKeyOnDeath = false;         // true - прятать ключ и при смерти (чтобы не висел поверх Game Over)
+
     [Header("Красный фильтр побега")]
     public Color tintColor = new Color(0.85f, 0.05f, 0.05f, 0.22f); // alpha = сила фильтра
     public float tintFadeIn = 2f;
@@ -138,13 +142,14 @@ public class EscapeController : MonoBehaviour
         dead = true;
         tintHidden = true;
         SetAlpha(tint, 0f);
+        if (hideKeyOnDeath) SetKeyVisible(false);
     }
 
     /// Можно вызвать из своего GameManager, если смерть определяется не через MonsterChaser.
     public void SetDead(bool value)
     {
         dead = value;
-        if (value) { tintHidden = true; SetAlpha(tint, 0f); }
+        if (value) { tintHidden = true; SetAlpha(tint, 0f); if (hideKeyOnDeath) SetKeyVisible(false); }
     }
 
     // новая игра: всё сбрасывается
@@ -153,6 +158,7 @@ public class EscapeController : MonoBehaviour
         EscapePhase = false;
         dead = false;
         tintHidden = false;
+        SetKeyVisible(true);
         tintTime = 0f;
         SetAlpha(tint, 0f);
     }
@@ -224,6 +230,8 @@ public class EscapeController : MonoBehaviour
 
         // 1. затемнение
         yield return FadeTo(black, 1f, fadeToBlackTime);
+
+        SetKeyVisible(false);   // экран чёрный: убираем интерфейс ключа незаметно
 
         // 2. экран чуть проявляется, играет музыка, появляется картинка
         float length = fallbackSeconds;
@@ -303,6 +311,36 @@ public class EscapeController : MonoBehaviour
         Color c = img.color;
         c.a = a;
         img.color = c;
+    }
+
+    // ------------------------------------------------------------------
+    GameObject keyObj;
+    bool keySearched;
+
+    GameObject KeyObject()
+    {
+        if (keyInterface != null) return keyInterface;
+        if (keyObj == null && !keySearched)
+        {
+            keySearched = true;
+            KeyChange kc = altars != null ? altars.keyChanger : null;
+            if (kc == null)
+            {
+#if UNITY_2023_1_OR_NEWER
+                kc = FindFirstObjectByType<KeyChange>();
+#else
+                kc = FindObjectOfType<KeyChange>();
+#endif
+            }
+            if (kc != null) keyObj = kc.gameObject;
+        }
+        return keyObj;
+    }
+
+    void SetKeyVisible(bool visible)
+    {
+        GameObject go = KeyObject();
+        if (go != null && go.activeSelf != visible) go.SetActive(visible);
     }
 
     // ------------------------------------------------------------------
