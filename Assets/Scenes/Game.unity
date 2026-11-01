@@ -487,6 +487,8 @@ MonoBehaviour:
   maze: {fileID: 0}
   player: {fileID: 0}
   monster: {fileID: 0}
+  keyInterface: {fileID: 1069675092}
+  hideKeyOnDeath: 1
   tintColor: {r: 0.85, g: 0.05, b: 0.05, a: 0.22}
   tintFadeIn: 2
   tintPulse: 0.2

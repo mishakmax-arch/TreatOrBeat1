@@ -254,6 +254,7 @@ public class EscapeController : MonoBehaviour
             if (hideButtonsOnWin)
                 foreach (var b in winScreen.GetComponentsInChildren<Button>(true)) b.gameObject.SetActive(false);
             winScreen.SetActive(true);
+            keyInterface.SetActive(false);   // на экране победы не нужен интерфейс ключа
         }
         else if (picture != null && escapeSprite != null)
         {
