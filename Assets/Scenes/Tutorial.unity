@@ -2263,6 +2263,9 @@ MonoBehaviour:
   fontSize: 30
   panelColor: {r: 0, g: 0, b: 0, a: 0.5}
   doneColor: {r: 0.55, g: 0.9, b: 0.55, a: 1}
+  hideOnPause: 1
+  hideOnDeath: 1
+  monster: {fileID: 0}
   taskText: {fileID: 0}
   runText: {fileID: 0}
   font: {fileID: 12800000, guid: b796d85e5c7377046a296543c83a28a9, type: 3}
@@ -2896,7 +2899,7 @@ MonoBehaviour:
           m_CallState: 2
     endFired: 0
   font: {fileID: 11400000, guid: abef3570331b73041b7c887843967f26, type: 2}
-  fontSize: 3
+  fontSize: 2
   upperCase: 1
   textColor: {r: 1, g: 1, b: 1, a: 1}
   maxWidth: 3
