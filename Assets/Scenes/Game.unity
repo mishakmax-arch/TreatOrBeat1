@@ -489,7 +489,7 @@ MonoBehaviour:
   monster: {fileID: 0}
   keyInterface: {fileID: 1069675092}
   hideKeyOnDeath: 1
-  tintColor: {r: 0.85, g: 0.05, b: 0.05, a: 0.22}
+  tintColor: {r: 0.85, g: 0.05, b: 0.05, a: 0.03529412}
   tintFadeIn: 2
   tintPulse: 0.2
   tintPulseSpeed: 2
@@ -3382,6 +3382,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maze: {fileID: 52470957}
   speed: 6
+  inputBufferSeconds: 0.4
 --- !u!114 &1904122199
 MonoBehaviour:
   m_ObjectHideFlags: 0

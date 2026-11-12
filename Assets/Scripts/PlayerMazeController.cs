@@ -4,14 +4,29 @@ using UnityEngine;
 /// Движение игрока по сетке лабиринта: WASD / стрелки.
 /// Игрок ходит строго по клеткам сетки (1 клетка = 1 юнит).
 /// Умеет переживать пересоздание стен (активация алтаря).
+///
+/// Буфер ввода: нажатие клавиши направления запоминается, даже если игрок ещё идёт.
+/// Как только игрок дойдёт до клетки, где этот поворот возможен, он повернёт.
+/// Запомненное нажатие живёт Input Buffer Seconds секунд.
 /// </summary>
 public class PlayerMazeController : MonoBehaviour
 {
     public MazeGenerator maze;
     public float speed = 6f;
 
+    [Header("Буфер ввода")]
+    [Tooltip("Сколько секунд помнится нажатие, если поворот пока невозможен (стена). 0 = буфер выключен.")]
+    public float inputBufferSeconds = 0.4f;
+
     bool moving;
     Vector3 target;
+
+    // буфер ввода
+    bool hasBuffer;
+    Vector2Int bufferedDir;
+    float bufferedTime;
+    Vector2Int pressDir;       // последнее нажатое направление
+    int prevH, prevV;          // оси на прошлом кадре (для определения "новое нажатие")
 
     /// true - игрок не реагирует на ввод (например, пока активируется алтарь).
     public bool InputLocked { get; set; }
@@ -50,6 +65,8 @@ public class PlayerMazeController : MonoBehaviour
         moving = false;
         LastDir = Vector2Int.zero;
         LastMoveTime = -999f;
+        hasBuffer = false;
+        pressDir = Vector2Int.zero;
     }
 
     // стены поменялись, игрок остался на месте: если шёл в клетку, которая стала стеной - останавливаем
@@ -68,6 +85,9 @@ public class PlayerMazeController : MonoBehaviour
     {
         if (maze == null || maze.Builder == null || maze.Builder.Grid == null) return;
 
+        // нажатия читаем каждый кадр, в том числе пока игрок идёт между клетками
+        ReadInput();
+
         if (moving)
         {
             transform.position = Vector3.MoveTowards(transform.position, target, speed * Time.deltaTime);
@@ -79,21 +99,91 @@ public class PlayerMazeController : MonoBehaviour
             else return;
         }
 
-        if (InputLocked) return; // начатый шаг доходит до конца, новый не начинается
+        if (InputLocked)   // начатый шаг доходит до конца, новый не начинается
+        {
+            hasBuffer = false;
+            return;
+        }
 
+        TryStartStep();
+    }
+
+    // Запоминает новое нажатие направления (ось только что стала ненулевой или сменила знак).
+    void ReadInput()
+    {
         int h = (int)Input.GetAxisRaw("Horizontal");
         int v = (int)Input.GetAxisRaw("Vertical");
-        if (h == 0 && v == 0) return;
+
+        bool newH = h != 0 && h != prevH;
+        bool newV = v != 0 && v != prevV;
+        prevH = h;
+        prevV = v;
+
+        if (InputLocked) return;   // во время блокировки нажатия не копим
 
         // в сетке y=0 - верх экрана, поэтому "вверх" = y-1
-        Vector2Int dir = h != 0 ? new Vector2Int(h, 0) : new Vector2Int(0, -v);
+        if (newV) Buffer(new Vector2Int(0, -v));
+        if (newH) Buffer(new Vector2Int(h, 0));   // если нажаты обе сразу, побеждает горизонталь (как раньше)
+    }
 
+    void Buffer(Vector2Int dir)
+    {
+        pressDir = dir;
+        bufferedDir = dir;
+        bufferedTime = Time.time;
+        hasBuffer = true;
+    }
+
+    // Игрок стоит в клетке: выбираем следующий шаг.
+    void TryStartStep()
+    {
         Vector2Int cell = maze.WorldToGrid(transform.position);
-        Vector2Int next = cell + dir;
+        Vector2Int dir = Vector2Int.zero;
+        bool found = false;
 
-        if (!IsFree(next)) return;
+        // 1) запомненное нажатие (поворот "заранее")
+        if (hasBuffer)
+        {
+            if (Time.time - bufferedTime > inputBufferSeconds)
+            {
+                hasBuffer = false;   // протухло
+            }
+            else if (IsFree(cell + bufferedDir))
+            {
+                dir = bufferedDir;
+                found = true;
+                hasBuffer = false;
+            }
+            // иначе поворот пока невозможен: оставляем в буфере до следующей клетки
+        }
 
-        Vector3 w2 = maze.CellToWorld(next);
+        // 2) если ничего не запомнено/не вышло - продолжаем идти туда, куда зажата клавиша
+        if (!found)
+        {
+            Vector2Int hd = prevH != 0 ? new Vector2Int(prevH, 0) : Vector2Int.zero;
+            Vector2Int vd = prevV != 0 ? new Vector2Int(0, -prevV) : Vector2Int.zero;
+
+            // сначала то направление, которое нажато последним (если ещё зажато)
+            if (pressDir != Vector2Int.zero && (pressDir == hd || pressDir == vd) && IsFree(cell + pressDir))
+            {
+                dir = pressDir;
+                found = true;
+            }
+            else if (hd != Vector2Int.zero && IsFree(cell + hd))
+            {
+                dir = hd;
+                found = true;
+            }
+            else if (vd != Vector2Int.zero && IsFree(cell + vd))
+            {
+                dir = vd;
+                found = true;
+            }
+        }
+
+        if (!found) return;
+
+        Vector3 w2 = maze.CellToWorld(cell + dir);
         target = new Vector3(w2.x, w2.y, transform.position.z);
         moving = true;
 
